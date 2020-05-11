@@ -26,7 +26,7 @@ int clen;    // длина фрагмена ответа шириной в ст�
 
 do {
 //  usleep(waittime*100); // задержка ожидания ответа - не нужна, termios сам ее отрабатывает
-  rlen=read(siofd,ibuf+dlen,5000);   // ответ команды
+  rlen=qread(siofd,ibuf+dlen,5000);   // ответ команды
   if ((dlen+rlen) >= 5000) break; // переполнение буфера
   dlen+=rlen;
 } while (rlen != 0);
@@ -36,20 +36,20 @@ if (dlen == 0) return; // ответа нет
 
 // Получен ответ - выводим его на экран
 if (hexflag) {
-  printf("\n");rlen=-1;
+  qprintf("\n");rlen=-1;
   dump(ibuf,dlen,0);
-  printf("\n");
+  qprintf("\n");
 }
 else {
   ibuf[dlen]=0; // конец строки
-  printf("\n");
+  qprintf("\n");
   if (wrapperlen == 0) puts(ibuf);
   else {
     clen=wrapperlen;
     for(i=0;i<dlen;i+=wrapperlen) {
        if ((dlen-i) < wrapperlen) clen=dlen-i; // длина последней строки
        fwrite(ibuf+i,1,clen,stdout);
-       printf("\n");
+       qprintf("\n");
        fflush(stdout);
     }
   }
@@ -74,7 +74,7 @@ strcat(outcmd,"\r");   // добавляем CR в конец строки
 
 // отправка команды
 ttyflush();  // очистка выходного буфера
-write(siofd,outcmd,strlen(outcmd));  // отсылка команды
+qwrite(siofd,outcmd,strlen(outcmd));  // отсылка команды
 // 
 read_responce();
 }
@@ -100,7 +100,7 @@ int opt;
 while ((opt = getopt(argc, argv, "p:xw:c:hd:ma")) != -1) {
   switch (opt) {
    case 'h': 
-     printf("\nТерминальная программа для ввода АТ-команд в модем\n\n\
+     qprintf("\nТерминальная программа для ввода АТ-команд в модем\n\n\
 Допустимы следующие ключи:\n\n\
 -p <tty>       - указывает имя устройства последовательного порта\n\
 -d <time>      - задает время ожидания ответа модема в ms\n\
@@ -148,16 +148,16 @@ while ((opt = getopt(argc, argv, "p:xw:c:hd:ma")) != -1) {
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
+   qprintf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
 #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
    return; 
 }
@@ -186,11 +186,11 @@ for(;;)  {
 #ifndef WIN32
  line=readline(">");
 #else
- printf(">");
+ qprintf(">");
  fgets(line, sizeof(line), stdin);
 #endif
  if (line == 0) {
-    printf("\n");
+    qprintf("\n");
     return;
  }   
  if (strlen(line) == 0) continue; // пустая команда

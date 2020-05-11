@@ -46,6 +46,14 @@ extern unsigned int nc_stop,nc_read,nc_readall,nc_program,nc_programall,nc_erase
 
 #define ppb 64             // число страниц в 1 блоке
 
+#ifdef WIN32
+int qread(int siofd, unsigned char* buf, int len);
+int qwrite(int siofd, unsigned char* buf, int len);
+#else
+#define qread read
+#define qwrite write
+#endif
+
 void ttyflush();
 void dump(unsigned char buffer[],unsigned int len,unsigned int base);
 int send_cmd(unsigned char* incmdbuf, int blen, unsigned char* iobuf);

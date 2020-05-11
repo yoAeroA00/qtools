@@ -11,12 +11,12 @@ unsigned int rflag=0,wflag=0,padr=0;
 unsigned int sig1,sig2;
 
 if (argc != 2) {
-  printf("\n Не указано имя файла MIBIB\n");
+  qprintf("\n Не указано имя файла MIBIB\n");
   return;
 }
 in=fopen(argv[1],"rb");
 if (in == 0) {
-  printf("\n Ошибка открытия файла MIBIB\n");
+  qprintf("\n Ошибка открытия файла MIBIB\n");
   return;
 }  
 
@@ -30,7 +30,7 @@ while (!feof(in)) {
  padr+=512;
 } 
 if (feof(in)) {
-   printf("\n Сигнатура блока таблиц разделов не найдена\n");
+   qprintf("\n Сигнатура блока таблиц разделов не найдена\n");
    fclose(in);
    return;
 }
@@ -82,7 +82,7 @@ while(!feof(in)) {
  }
  fseek(in,504,SEEK_CUR);  // пропускаем остаток сектора
 }  
-if (!rflag) printf("\n Таблица чтения не найдена\n");
-if (!wflag) printf("\n Таблица записи не найдена\n");
+if (!rflag) qprintf("\n Таблица чтения не найдена\n");
+if (!wflag) qprintf("\n Таблица записи не найдена\n");
     fclose(in);
 }

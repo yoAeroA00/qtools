@@ -3,14 +3,15 @@ LIBS     = -lreadline
 CFLAGS   = -O2 -g -Wno-unused-result -Wunused
 
 OBJS     = hdlc.o  qcio.o memio.o chipconfig.o
+BINS     = qcommand qrmem qrflash qdload mibibsplit qwflash qwdirect qefs qnvram qblinfo qident qterminal qbadblock qflashparm
 
 .PHONY: all clean
 
-all:    qcommand qrmem qrflash qdload mibibsplit qwflash qwdirect qefs qnvram qblinfo qident qterminal qbadblock qflashparm
+all:    $(BINS)
 
-clean: 
-	rm *.o
-	rm $(all)
+clean:
+	rm -f *.o
+	rm -f $(BINS)
 
 #.c.o:
 #	$(CC) -o $@ $(LIBS) $^ qcio.o
@@ -24,47 +25,47 @@ ptable.o: ptable.c
 #	$(CC) -c qcio.c
 
 qcommand: qcommand.o  $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qrmem: qrmem.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qrflash: qrflash.o $(OBJS) ptable.o
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qwflash: qwflash.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 #qwimage: qwimage.o $(OBJS)
-#	gcc $^ -o $@ $(LIBS)
+#	$(CC) $^ -o $@ $(LIBS)
 
 qdload: qdload.o sahara.o $(OBJS)  ptable.o
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qwdirect: qwdirect.o $(OBJS)  ptable.o
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 	
 qefs  : qefs.o efsio.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qnvram  : qnvram.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 	
 mibibsplit: mibibsplit.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qblinfo:    qblinfo.o $(OBJS)
-	gcc $^ -o $@  $(LIBS)
+	$(CC) $^ -o $@  $(LIBS)
 
 qident:      qident.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qterminal:   qterminal.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qbadblock:   qbadblock.o $(OBJS)  ptable.o
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 
 qflashparm:  qflashparm.o $(OBJS)
-	gcc $^ -o $@ $(LIBS)
+	$(CC) $^ -o $@ $(LIBS)
 	

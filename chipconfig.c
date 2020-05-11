@@ -92,7 +92,7 @@ char vval[100];
 
 FILE* in=fopen("chipset.cfg","r");  
 if (in == 0) {
-  printf("\n! Файл конфигурации чипсетов chipset.cfg не найден\n");
+  qprintf("\n! Файл конфигурации чипсетов chipset.cfg не найден\n");
   return 0;  // конфиг не найден
 }
 
@@ -106,10 +106,10 @@ while(fgets(line,300,in) != 0) {
   
   // начало описателя очередного чипсета
   if (tok1[0] == '[') {
-//     printf("\n@@ описатель чипсета:");
+//     qprintf("\n@@ описатель чипсета:");
    tok2=strchr(tok1,']');
    if (tok2 == 0) {
-      printf("\n! Файл конфигурации содержит ошибку в заголовке чипсета\n %s\n",line);
+      qprintf("\n! Файл конфигурации содержит ошибку в заголовке чипсета\n %s\n",line);
       return 0;
     }   
     tok2[0]=0;
@@ -124,12 +124,12 @@ while(fgets(line,300,in) != 0) {
     chipset[maxchip].enprg[0]=0;
     memset(chip_code[maxchip],0xffff,40);  // таблица msm_id заполняется FF
     msmidcount=0;
-//       printf("\n@@ %s",tok1+1);
+//       qprintf("\n@@ %s",tok1+1);
     continue;
   }
 
   if (maxchip == -1) {
-      printf("\n! Файл конфигурации содержит строки вне секции описания чипсетов\n");
+      qprintf("\n! Файл конфигурации содержит строки вне секции описания чипсетов\n");
       return 0;
   }   
   
@@ -144,13 +144,13 @@ while(fgets(line,300,in) != 0) {
   
   tok1+=index; 
   if (strchr(tok1,'=') == 0) {
-     printf("\n! Файл конфигурации: нет значения переменной\n%s\n",line);
+     qprintf("\n! Файл конфигурации: нет значения переменной\n%s\n",line);
      return 0;
   }
   tok1+=strspn(tok1,"= "); // пропускаем разделитель
   strncpy(vval,tok1,strcspn(tok1," \r\n"));
 
-//   printf("\n @@@ vname = <%s>   vval = <%s>",vname,vval); 
+//   qprintf("\n @@@ vname = <%s>   vval = <%s>",vname,vval); 
   
   // разбираем имена переменных
   
@@ -158,7 +158,7 @@ while(fgets(line,300,in) != 0) {
   if (strcmp(vname,"id") == 0) {
      chipset[maxchip].id=atoi(vval);         // код (id) чипcета 0 - несуществующий чипсет
      if (chipset[maxchip].id == 0) {
-      printf("\n! Файл конфигурации: id=0 недопустимо\n%s\n",line);
+      qprintf("\n! Файл конфигурации: id=0 недопустимо\n%s\n",line);
       return 0;
      }
      continue;
@@ -208,13 +208,13 @@ while(fgets(line,300,in) != 0) {
   }
   
   // остальные имена
-  printf("\n! Файл конфигурации: недопустимое имя переменной\n%s\n",line);
+  qprintf("\n! Файл конфигурации: недопустимое имя переменной\n%s\n",line);
   return 0;
 
 } 
 fclose(in);
 if (maxchip == -1) {
-  printf("\n! Файл конфигурации не содержит ни одного описателя чипсетов\n");
+  qprintf("\n! Файл конфигурации не содержит ни одного описателя чипсетов\n");
   return 0;
 }  
 maxchip++;
@@ -245,15 +245,15 @@ return -1;
 void list_chipset() {
   
 int i,j;
-printf("\n Код     Имя    Адрес NAND   Тип  udflag  MSM_ID\n---------------------------------------------------------------------");
+qprintf("\n Код     Имя    Адрес NAND   Тип  udflag  MSM_ID\n---------------------------------------------------------------------");
 for(i=0;i<maxchip;i++) {
-//  if (i == 0)  printf("\n  0 (по умолчанию) автоопределение чипсета");
-  printf("\n %2i  %9.9s    %08x    %1i     %1i    ",chipset[i].id,chipset[i].name,
+//  if (i == 0)  qprintf("\n  0 (по умолчанию) автоопределение чипсета");
+  qprintf("\n %2i  %9.9s    %08x    %1i     %1i    ",chipset[i].id,chipset[i].name,
 	 chipset[i].nandbase,chipset[i].ctrl_type,chipset[i].udflag);
   for(j=0;chip_code[i][j]!=0xffff;j++) 
-    printf(" %04hx",chip_code[i][j]);
+    qprintf(" %04hx",chip_code[i][j]);
 }
-printf("\n\n");
+qprintf("\n\n");
 exit(0);
 }
 
@@ -295,7 +295,7 @@ for(i=0;i<maxchip ;i++)
   if (chipset[i].id == c) chip_type=i;
 
 if (chip_type == -1) {
-  printf("\n - Неверный код чипсета - %i",chip_type);
+  qprintf("\n - Неверный код чипсета - %i",chip_type);
   exit(1);
 }
 // устанавливаем адреса регистров чипсета

@@ -14,12 +14,12 @@ unsigned int i,j;
 char ch;
 
 for (i=0;i<len;i+=16) {
-  printf("%08x: ",base+i);
+  qprintf("%08x: ",base+i);
   for (j=0;j<16;j++){
-   if ((i+j) < len) printf("%02x ",buffer[i+j]&0xff);
-   else printf("   ");
+   if ((i+j) < len) qprintf("%02x ",buffer[i+j]&0xff);
+   else qprintf("   ");
   }
-  printf(" *");
+  qprintf(" *");
   for (j=0;j<16;j++) {
    if ((i+j) < len) {
     ch=buffer[i+j];
@@ -28,7 +28,7 @@ for (i=0;i<len;i+=16) {
    }
    else putchar(' ');
   }
-  printf("*\n");
+  qprintf("*\n");
 }
 }
 
@@ -78,12 +78,12 @@ for(i=0;i<len;i+=1000)  {
      // короткий ответ от загрузчика
      tries--;
      usleep(1000);
-//     printf("\n!t%i! %i < %i",tries,iolen,blklen+4);
+//     qprintf("\n!t%i! %i < %i",tries,iolen,blklen+4);
   }
   else break; // нормальный ответ - заканчиваем с этим блоком данных
  }
  if (tries == 0) { 
-    printf("\n Ошибка обработки команды чтения памяти, требуется %i байт, получено %i adr=%08x\n",blklen,iolen,adr);
+    qprintf("\n Ошибка обработки команды чтения памяти, требуется %i байт, получено %i adr=%08x\n",blklen,iolen,adr);
     memset(membuf+i,0xeb,blklen);
     errcount++;
  }   

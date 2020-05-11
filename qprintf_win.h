@@ -1,4 +1,4 @@
-static int printf(const char* format, ...)
+static int qprintf(const char* format, ...)
 {
     static char ostr[2048];
     static wchar_t wstr[2048];

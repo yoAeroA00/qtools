@@ -12,18 +12,18 @@ unsigned int baseaddr=0;
 unsigned int codeoffset=0x28;
 
 if (argv[1] == NULL) {
-  printf("\nНе указан файл\n");
+  qprintf("\nНе указан файл\n");
   return;
 }
 in = fopen(argv[1],"rb");
 if (in == NULL) {
-  printf("\n Cannot open file %s\n",argv[1]);
+  qprintf("\n Cannot open file %s\n",argv[1]);
   return;
 }
 
 fl = fread(&buf,1,sizeof(buf),in);
 fclose(in);
-printf("\n** %s: %u bytes\n",argv[1],fl);
+qprintf("\n** %s: %u bytes\n",argv[1],fl);
 
 // Анализируем заголовок загрузчика
 memcpy(header,buf,28);
@@ -36,10 +36,10 @@ else if (header[1] == 3) {
   // формат для NPRG и старых ENPRG
   baseaddr=header[3]-0x28;
 }
-else printf("\n Неопределенный заголовок файла - скорее всего это не загрузчик");
+else qprintf("\n Неопределенный заголовок файла - скорее всего это не загрузчик");
 if (baseaddr != 0) { 
-  printf("\n Адрес загрузки:    %08x",baseaddr);
-  printf("\n Адрес начала кода: %08x",baseaddr+codeoffset);
+  qprintf("\n Адрес загрузки:    %08x",baseaddr);
+  qprintf("\n Адрес начала кода: %08x",baseaddr+codeoffset);
 }
 
 for (i=0;i<fl;i++) {
@@ -70,25 +70,25 @@ for (i=0;i<fl;i++) {
 		tablefound=1;
 		// цикл выбра команд из таблицы
 		ncmd=0;
-//		printf("\n--f--");
+//		qprintf("\n--f--");
 		for (j=0;j<0x100;j++) {
 			if (*((unsigned int*)&buf[i-4+4*j]) != daddr) {
 			if ((*((unsigned int*)&buf[i-4+4*j])&0xfffc0000) != (daddr&0xfffc0000)) break; // это не адрес, конец таблицы
 			ncmd++;
-			printf("\n CMD %02x = %08x",j+1,*((unsigned int*)&buf[i-4+4*j]));
+			qprintf("\n CMD %02x = %08x",j+1,*((unsigned int*)&buf[i-4+4*j]));
 			}
 		}  
 		if (ncmd != 0) {
-			printf("\n CMD table offset: %x",i-4);
-			printf("\n Invalid CMD handler: %08x",daddr);
-		} else 	printf ("\n No CMD table found. Image is probably not a *PRG.");  
+			qprintf("\n CMD table offset: %x",i-4);
+			qprintf("\n Invalid CMD handler: %08x",daddr);
+		} else 	qprintf ("\n No CMD table found. Image is probably not a *PRG.");  
 	}
  }
 }
  if (hwidfound == 1) {
-	printf("\n\n HW_ID = 0x%.16s",hwid);
-	printf("\n MSM_ID = 0x%.8s\n OEM_ID = 0x%.4s\n MODEL_ID = 0x%.4s\n",hwid,hwid+8,hwid+12);
-} else printf("\n\n Unsigned code or no HW_ID value in Subject field\n");
+	qprintf("\n\n HW_ID = 0x%.16s",hwid);
+	qprintf("\n MSM_ID = 0x%.8s\n OEM_ID = 0x%.4s\n MODEL_ID = 0x%.4s\n",hwid,hwid+8,hwid+12);
+} else qprintf("\n\n Unsigned code or no HW_ID value in Subject field\n");
 
-printf("\n");
+qprintf("\n");
 }

@@ -25,7 +25,7 @@ char devname[20]="";
 while ((opt = getopt(argc, argv, "p:a:l:o:hi")) != -1) {
   switch (opt) {
    case 'h': 
-     printf("\n Утилита предназначена для чтения адресного пространства модема\n\n\
+     qprintf("\n Утилита предназначена для чтения адресного пространства модема\n\n\
 Допустимы следующие ключи:\n\n\
 -i        - запускает процедуру HELLO для инициализации загрузчика\n\
 -p <tty>  - указывает имя устройства последовательного порта для общения с загрузчиком\n\
@@ -63,21 +63,21 @@ while ((opt = getopt(argc, argv, "p:a:l:o:hi")) != -1) {
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
+   qprintf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (len == 0) {
-  printf("\n Неправильная длина");
+  qprintf("\n Неправильная длина");
   return;
 }  
 
 if (!open_port(devname))  {
  #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
   return; 
 }
@@ -87,16 +87,16 @@ out=fopen(filename,"wb");
 if (helloflag) hello(2);
 
 endadr=adr+len;
-printf("\n Чтение области %08x - %08x\n",adr,endadr-1);
+qprintf("\n Чтение области %08x - %08x\n",adr,endadr-1);
 
 for(i=adr;i<endadr;i+=512)  {
- printf("\r %08x",i); 
+ qprintf("\r %08x",i); 
  if ((i+512) > endadr) {
    blklen=endadr-adr;
  }
  memread(iobuf,i,blklen);
  fwrite(iobuf,1,blklen,out);
 } 
-printf("\n"); 
+qprintf("\n"); 
 fclose(out);
 } 

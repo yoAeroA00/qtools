@@ -62,8 +62,7 @@ return (~crc)&0xffff;
 }
 
 #ifdef WIN32
-
-int read(int siofd, unsigned char* buf, int len)
+int qread(int siofd, unsigned char* buf, int len)
 {
     DWORD bytes_read = 0;
     DWORD t = GetTickCount();
@@ -75,7 +74,7 @@ int read(int siofd, unsigned char* buf, int len)
     return bytes_read;
 }
 
-int write(int siofd, unsigned char* buf, int len)
+int qwrite(int siofd, unsigned char* buf, int len)
 {
     DWORD bytes_written = 0;
 
@@ -83,7 +82,6 @@ int write(int siofd, unsigned char* buf, int len)
 
     return bytes_written;
 }
-
 #endif
 
 // очиска буфера последовательного порта
@@ -112,8 +110,7 @@ if (prefixflag) { // вставляем префикс, если надо
 	outcmdbuf[0]=0x7e; 
 	outlen+=1;
 } 
-
-if (write(siofd,outcmdbuf,outlen) == 0) {   printf("\n Ошибка записи команды");return 0;  }
+if (qwrite(siofd,outcmdbuf,outlen) == 0) {   qprintf("\n Ошибка записи команды");return 0;  }
 #ifndef WIN32
 tcdrain(siofd);  // ждем окончания вывода блока
 #else
@@ -136,33 +133,33 @@ unsigned int res;
 unsigned char replybuf[14000];
 
 incount=0;
-if (read(siofd,&c,1) != 1) {
-//  printf("\n Нет ответа от модема");
+if (qread(siofd,&c,1) != 1) {
+//  qprintf("\n Нет ответа от модема");
   return 0; // модем не ответил или ответил неправильно
 }
 //if (c != 0x7e) {
-//  printf("\n Первый байт ответа - не 7e: %02x",c);
+//  qprintf("\n Первый байт ответа - не 7e: %02x",c);
 //  return 0; // модем не ответил или ответил неправильно
 //}
 replybuf[incount++]=c;
 
 // чтение массива данных единым блоком при обработке команды 03
 if (masslen != 0) {
- res=read(siofd,replybuf+1,masslen-1);
+ res=qread(siofd,replybuf+1,masslen-1);
  if (res != (masslen-1)) {
-//   printf("\nСлишком короткий ответ от модема: %i байт, ожидалось %i байт\n",res+1,masslen);
+//   qprintf("\nСлишком короткий ответ от модема: %i байт, ожидалось %i байт\n",res+1,masslen);
 //   dump(replybuf,res+1,0);
    return 0;
  }  
  incount+=masslen-1; // у нас в буфере уже есть masslen байт
-// printf("\n ------ it mass --------");
+// qprintf("\n ------ it mass --------");
 // dump(replybuf,incount,0);
 }
 
 // принимаем оставшийся хвост буфера
-while (read(siofd,&c,1) == 1)  {
+while (qread(siofd,&c,1) == 1)  {
  replybuf[incount++]=c;
-// printf("\n-- %02x",c);
+// qprintf("\n-- %02x",c);
  if (c == 0x7e) break;
 }
 
@@ -370,7 +367,7 @@ void reopen_port() {
 close_port();
 usleep(1000);
 if (!open_port(pdev)) {
-  printf("\n Ошибка открытия порта %s",pdev);
+  qprintf("\n Ошибка открытия порта %s",pdev);
   exit(1);
 } 
 }
@@ -412,7 +409,7 @@ char iobuf[2048];
 int iolen,i;
   
 if (len == 0) return;
-printf("\n! %s вернул ошибку: ",descr);  
+qprintf("\n! %s вернул ошибку: ",descr);  
 if (pktbuf[1] == 0x0e) {
   // текстовый отлуп - печатаем его
   pktbuf[len-4]=0;
@@ -420,7 +417,7 @@ if (pktbuf[1] == 0x0e) {
   iolen=receive_reply(iobuf,0);
   if (iolen != 0) {
       i=*((unsigned int*)&iobuf[2]);
-      printf("Код ошибки = %08x\n\n",i);
+      qprintf("Код ошибки = %08x\n\n",i);
   }
 }
 else {

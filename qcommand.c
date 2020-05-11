@@ -28,15 +28,15 @@ if (hdlcflag) {
   }  
 }
 else  {
-  write(siofd,cmdbuf,cmdlen);
-  iolen=read(siofd,iobuf,1024);
+  qwrite(siofd,cmdbuf,cmdlen);
+  iolen=qread(siofd,iobuf,1024);
 }  
   
 if (iolen != 0) {
-  printf("\n ---- ответ --- \n");
+  qprintf("\n ---- ответ --- \n");
   dump(iobuf,iolen,0);
 }  
-printf("\n");
+qprintf("\n");
 }
 
 //*******************************************************************
@@ -83,7 +83,7 @@ do {
     sptr++;
     while(*sptr != '\"') { // до кавычки
      if ((*sptr == 0) || (*sptr == '\n') || (*sptr == '\r')) {
-       printf("\n Закрывающая кавычка отстутствует\n");
+       qprintf("\n Закрывающая кавычка отстутствует\n");
        return;
      }  
      cmdbuf[bcnt++]=*sptr++;
@@ -112,18 +112,18 @@ unsigned int i;
 char* sptr;
 sptr=strtok(line," "); // выделяем имя файла
 if (sptr == 0) {
-  printf(" Не указано имя файла\n");
+  qprintf(" Не указано имя файла\n");
   return;
 }  
 fcmd=fopen(sptr,"r");
 if (fcmd == 0) {
-  printf(" Ошибка открытия файла %s\n",sptr);
+  qprintf(" Ошибка открытия файла %s\n",sptr);
   return;
 }
 fseek(fcmd,0,SEEK_END);
 i=ftell(fcmd);
 if (i>1024) {
-  printf(" Слишком большой файл - %u байт\n",i);
+  qprintf(" Слишком большой файл - %u байт\n",i);
   fclose(fcmd);
   return;
 }
@@ -147,7 +147,7 @@ if (sptr != 0) {  // режим указан - устанавливаем его
   sscanf(sptr,"%u",&mode);
   hdlcflag=mode?1:0;
 }
-printf(" HDLC %s\n",hdlcflag?"On":"Off");
+qprintf(" HDLC %s\n",hdlcflag?"On":"Off");
 }
 
 
@@ -157,14 +157,14 @@ printf(" HDLC %s\n",hdlcflag?"On":"Off");
 void decode_cfg0() {
   
 unsigned int cfg0=mempeek(nand_cfg0);
-printf("\n **** Конфигурационный регистр 0 *****");
-printf("\n * NUM_ADDR_CYCLES              = %x",(cfg0>>27)&7);
-printf("\n * SPARE_SIZE_BYTES             = %x",(cfg0>>23)&0xf);
-printf("\n * ECC_PARITY_SIZE_BYTES        = %x",(cfg0>>19)&0xf);
-printf("\n * UD_SIZE_BYTES                = %x",(cfg0>>9)&0x3ff);
-printf("\n * CW_PER_PAGE                  = %x",((cfg0>>6)&7) | ((cfg0>>2)&8));
-printf("\n * DISABLE_STATUS_AFTER_WRITE   = %x",(cfg0>>4)&1);
-printf("\n * BUSY_TIMEOUT_ERROR_SELECT    = %x",(cfg0)&7);
+qprintf("\n **** Конфигурационный регистр 0 *****");
+qprintf("\n * NUM_ADDR_CYCLES              = %x",(cfg0>>27)&7);
+qprintf("\n * SPARE_SIZE_BYTES             = %x",(cfg0>>23)&0xf);
+qprintf("\n * ECC_PARITY_SIZE_BYTES        = %x",(cfg0>>19)&0xf);
+qprintf("\n * UD_SIZE_BYTES                = %x",(cfg0>>9)&0x3ff);
+qprintf("\n * CW_PER_PAGE                  = %x",((cfg0>>6)&7) | ((cfg0>>2)&8));
+qprintf("\n * DISABLE_STATUS_AFTER_WRITE   = %x",(cfg0>>4)&1);
+qprintf("\n * BUSY_TIMEOUT_ERROR_SELECT    = %x",(cfg0)&7);
 }
 
 //**********************************************
@@ -173,19 +173,19 @@ printf("\n * BUSY_TIMEOUT_ERROR_SELECT    = %x",(cfg0)&7);
 void decode_cfg1() {
   
 unsigned int cfg1=mempeek(nand_cfg1);
-printf("\n **** Конфигурационный регистр 1 *****");
-printf("\n * ECC_MODE                      = %x",(cfg1>>28)&3);
-printf("\n * ENABLE_BCH_ECC                = %x",(cfg1>>27)&1);
-printf("\n * DISABLE_ECC_RESET_AFTER_OPDONE= %x",(cfg1>>25)&1);
-printf("\n * ECC_DECODER_CGC_EN            = %x",(cfg1>>24)&1);
-printf("\n * ECC_ENCODER_CGC_EN            = %x",(cfg1>>23)&1);
-printf("\n * WR_RD_BSY_GAP                 = %x",(cfg1>>17)&0x3f);
-printf("\n * BAD_BLOCK_IN_SPARE_AREA       = %x",(cfg1>>16)&1);
-printf("\n * BAD_BLOCK_BYTE_NUM            = %x",(cfg1>>6)&0x3ff);
-printf("\n * CS_ACTIVE_BSY                 = %x",(cfg1>>5)&1);
-printf("\n * NAND_RECOVERY_CYCLES          = %x",(cfg1>>2)&7);
-printf("\n * WIDE_FLASH                    = %x",(cfg1>>1)&1);
-printf("\n * ECC_DISABLE                   = %x",(cfg1)&1);
+qprintf("\n **** Конфигурационный регистр 1 *****");
+qprintf("\n * ECC_MODE                      = %x",(cfg1>>28)&3);
+qprintf("\n * ENABLE_BCH_ECC                = %x",(cfg1>>27)&1);
+qprintf("\n * DISABLE_ECC_RESET_AFTER_OPDONE= %x",(cfg1>>25)&1);
+qprintf("\n * ECC_DECODER_CGC_EN            = %x",(cfg1>>24)&1);
+qprintf("\n * ECC_ENCODER_CGC_EN            = %x",(cfg1>>23)&1);
+qprintf("\n * WR_RD_BSY_GAP                 = %x",(cfg1>>17)&0x3f);
+qprintf("\n * BAD_BLOCK_IN_SPARE_AREA       = %x",(cfg1>>16)&1);
+qprintf("\n * BAD_BLOCK_BYTE_NUM            = %x",(cfg1>>6)&0x3ff);
+qprintf("\n * CS_ACTIVE_BSY                 = %x",(cfg1>>5)&1);
+qprintf("\n * NAND_RECOVERY_CYCLES          = %x",(cfg1>>2)&7);
+qprintf("\n * WIDE_FLASH                    = %x",(cfg1>>1)&1);
+qprintf("\n * ECC_DISABLE                   = %x",(cfg1)&1);
 }
 
 
@@ -205,7 +205,7 @@ switch (cmdline[0]) {
   
   // help
   case 'h':
-    printf("\n Доступны следующие команды:\n\n\
+    qprintf("\n Доступны следующие команды:\n\n\
 c nn nn nn nn.... - формирование и запуск командного пакета из перечисленных байтов\n\
 @ file            - запуск командного пакета из указанного файла\n\
 d adr [len]       - прсмотр дампа адресного пространства системы\n\
@@ -240,7 +240,7 @@ x                 - выход из программы\n\
       break;
     }
     if (sptr[0] != 's') {
-      printf("\n Недопустимый параметр в команде i");
+      qprintf("\n Недопустимый параметр в команде i");
       break;
     }
     hello(2);
@@ -249,7 +249,7 @@ x                 - выход из программы\n\
   // дамп памяти
   case 'd':  
    sptr=strtok(cmdline+1," "); // адрес
-   if (sptr == 0) {printf("\n Не указан адрес"); return;}
+   if (sptr == 0) {qprintf("\n Не указан адрес"); return;}
    sscanf(sptr,"%x",&adr);
    sptr=strtok(0," "); // длина
    if (sptr != 0) sscanf(sptr,"%x",&len);
@@ -258,11 +258,11 @@ x                 - выход из программы\n\
 
   case 'm':
    sptr=strtok(cmdline+1," "); // адрес
-   if (sptr == 0) {printf("\n Не указан адрес"); return;}
+   if (sptr == 0) {qprintf("\n Не указан адрес"); return;}
    sscanf(sptr,"%x",&adr);
    while((sptr=strtok(0," ")) != 0) { // данные
      sscanf(sptr,"%x",&data);
-     if (!mempoke(adr,data)) printf("\nКоманда возвратила ошибку, adr=%08x  data=%08x\n",adr,data);
+     if (!mempoke(adr,data)) qprintf("\nКоманда возвратила ошибку, adr=%08x  data=%08x\n",adr,data);
      adr+=4;
    }
    break;
@@ -270,20 +270,20 @@ x                 - выход из программы\n\
   case 'r':
    hello(0);
    sptr=strtok(cmdline+1," "); // блок
-   if (sptr == 0) {printf("\n Не указан # блока"); return;}
+   if (sptr == 0) {qprintf("\n Не указан # блока"); return;}
    sscanf(sptr,"%x",&block);
 
    sptr=strtok(0," ");        // страница
-   if (sptr == 0) {printf("\n Не указан # страницы"); return;}
+   if (sptr == 0) {qprintf("\n Не указан # страницы"); return;}
    sscanf(sptr,"%x",&page);
-   if (page>63)  {printf("\n Слишком большой # страницы"); return;}
+   if (page>63)  {qprintf("\n Слишком большой # страницы"); return;}
    
    sptr=strtok(0," ");        // сектор
-   if (sptr == 0) {printf("\n Не указан # сектора"); return;}
+   if (sptr == 0) {qprintf("\n Не указан # сектора"); return;}
    sscanf(sptr,"%x",&sect);
-   if (sect>spp-1)  {printf("\n Слишком большой # сектора"); return;}
+   if (sect>spp-1)  {qprintf("\n Слишком большой # сектора"); return;}
    
-   if (!flash_read(block,page,sect)) printf("\n    *** badblock ***\n");
+   if (!flash_read(block,page,sect)) qprintf("\n    *** badblock ***\n");
    memread(membuf,sector_buf,0x23c);
    dump(membuf,0x23c,0); 
    break;
@@ -308,40 +308,40 @@ x                 - выход из программы\n\
    memread(membuf+0xe8,nand_cmd+0xe8,0x0c);
    } else memread(membuf,nand_cmd,0x100);
 
-   printf("\n* 000 NAND_FLASH_CMD         = %08x",*((unsigned int*)&membuf[0]));
-   printf("\n* 004 NAND_ADDR0             = %08x",*((unsigned int*)&membuf[4]));
-   printf("\n* 008 NAND_ADDR1             = %08x",*((unsigned int*)&membuf[8]));
-   printf("\n* 00c NAND_CHIP_SELECT       = %08x",*((unsigned int*)&membuf[0xc]));
-   printf("\n* 010 NANDC_EXEC_CMD         = %08x",*((unsigned int*)&membuf[0x10]));
-   printf("\n* 014 NAND_FLASH_STATUS      = %08x",*((unsigned int*)&membuf[0x14]));
-   printf("\n* 018 NANDC_BUFFER_STATUS    = %08x",*((unsigned int*)&membuf[0x18]));
-   printf("\n* 020 NAND_DEV0_CFG0         = %08x",*((unsigned int*)&membuf[0x20]));
-   printf("\n* 024 NAND_DEV0_CFG1         = %08x",*((unsigned int*)&membuf[0x24]));
-   printf("\n* 028 NAND_DEV0_ECC_CFG      = %08x",*((unsigned int*)&membuf[0x28]));
-   printf("\n* 040 NAND_FLASH_READ_ID     = %08x",*((unsigned int*)&membuf[0x40]));
-   printf("\n* 044 NAND_FLASH_READ_STATUS = %08x",*((unsigned int*)&membuf[0x44]));
-   printf("\n* 048 NAND_FLASH_READ_ID2    = %08x",*((unsigned int*)&membuf[0x48]));
+   qprintf("\n* 000 NAND_FLASH_CMD         = %08x",*((unsigned int*)&membuf[0]));
+   qprintf("\n* 004 NAND_ADDR0             = %08x",*((unsigned int*)&membuf[4]));
+   qprintf("\n* 008 NAND_ADDR1             = %08x",*((unsigned int*)&membuf[8]));
+   qprintf("\n* 00c NAND_CHIP_SELECT       = %08x",*((unsigned int*)&membuf[0xc]));
+   qprintf("\n* 010 NANDC_EXEC_CMD         = %08x",*((unsigned int*)&membuf[0x10]));
+   qprintf("\n* 014 NAND_FLASH_STATUS      = %08x",*((unsigned int*)&membuf[0x14]));
+   qprintf("\n* 018 NANDC_BUFFER_STATUS    = %08x",*((unsigned int*)&membuf[0x18]));
+   qprintf("\n* 020 NAND_DEV0_CFG0         = %08x",*((unsigned int*)&membuf[0x20]));
+   qprintf("\n* 024 NAND_DEV0_CFG1         = %08x",*((unsigned int*)&membuf[0x24]));
+   qprintf("\n* 028 NAND_DEV0_ECC_CFG      = %08x",*((unsigned int*)&membuf[0x28]));
+   qprintf("\n* 040 NAND_FLASH_READ_ID     = %08x",*((unsigned int*)&membuf[0x40]));
+   qprintf("\n* 044 NAND_FLASH_READ_STATUS = %08x",*((unsigned int*)&membuf[0x44]));
+   qprintf("\n* 048 NAND_FLASH_READ_ID2    = %08x",*((unsigned int*)&membuf[0x48]));
    if (!(is_chipset("MDM9x4x"))) {
-		printf("\n* 064 FLASH_MACRO1_REG       = %08x",*((unsigned int*)&membuf[0x64]));
-		printf("\n* 070 FLASH_XFR_STEP1        = %08x",*((unsigned int*)&membuf[0x70]));
-		printf("\n* 074 FLASH_XFR_STEP2        = %08x",*((unsigned int*)&membuf[0x74]));
-		printf("\n* 078 FLASH_XFR_STEP3        = %08x",*((unsigned int*)&membuf[0x78]));
-		printf("\n* 07c FLASH_XFR_STEP4        = %08x",*((unsigned int*)&membuf[0x7c]));
-		printf("\n* 080 FLASH_XFR_STEP5        = %08x",*((unsigned int*)&membuf[0x80]));
-		printf("\n* 084 FLASH_XFR_STEP6        = %08x",*((unsigned int*)&membuf[0x84]));
-		printf("\n* 088 FLASH_XFR_STEP7        = %08x",*((unsigned int*)&membuf[0x88]));
-		printf("\n* 0a0 FLASH_DEV_CMD0         = %08x",*((unsigned int*)&membuf[0xa0]));
-		printf("\n* 0a4 FLASH_DEV_CMD1         = %08x",*((unsigned int*)&membuf[0xa4]));
-		printf("\n* 0a8 FLASH_DEV_CMD2         = %08x",*((unsigned int*)&membuf[0xa8]));
-		printf("\n* 0ac FLASH_DEV_CMD_VLD      = %08x",*((unsigned int*)&membuf[0xac]));
-		printf("\n* 0d0 FLASH_DEV_CMD3         = %08x",*((unsigned int*)&membuf[0xd0]));
-		printf("\n* 0d4 FLASH_DEV_CMD4         = %08x",*((unsigned int*)&membuf[0xd4]));
-		printf("\n* 0d8 FLASH_DEV_CMD5         = %08x",*((unsigned int*)&membuf[0xd8]));
-		printf("\n* 0dc FLASH_DEV_CMD6         = %08x",*((unsigned int*)&membuf[0xdc]));
+		qprintf("\n* 064 FLASH_MACRO1_REG       = %08x",*((unsigned int*)&membuf[0x64]));
+		qprintf("\n* 070 FLASH_XFR_STEP1        = %08x",*((unsigned int*)&membuf[0x70]));
+		qprintf("\n* 074 FLASH_XFR_STEP2        = %08x",*((unsigned int*)&membuf[0x74]));
+		qprintf("\n* 078 FLASH_XFR_STEP3        = %08x",*((unsigned int*)&membuf[0x78]));
+		qprintf("\n* 07c FLASH_XFR_STEP4        = %08x",*((unsigned int*)&membuf[0x7c]));
+		qprintf("\n* 080 FLASH_XFR_STEP5        = %08x",*((unsigned int*)&membuf[0x80]));
+		qprintf("\n* 084 FLASH_XFR_STEP6        = %08x",*((unsigned int*)&membuf[0x84]));
+		qprintf("\n* 088 FLASH_XFR_STEP7        = %08x",*((unsigned int*)&membuf[0x88]));
+		qprintf("\n* 0a0 FLASH_DEV_CMD0         = %08x",*((unsigned int*)&membuf[0xa0]));
+		qprintf("\n* 0a4 FLASH_DEV_CMD1         = %08x",*((unsigned int*)&membuf[0xa4]));
+		qprintf("\n* 0a8 FLASH_DEV_CMD2         = %08x",*((unsigned int*)&membuf[0xa8]));
+		qprintf("\n* 0ac FLASH_DEV_CMD_VLD      = %08x",*((unsigned int*)&membuf[0xac]));
+		qprintf("\n* 0d0 FLASH_DEV_CMD3         = %08x",*((unsigned int*)&membuf[0xd0]));
+		qprintf("\n* 0d4 FLASH_DEV_CMD4         = %08x",*((unsigned int*)&membuf[0xd4]));
+		qprintf("\n* 0d8 FLASH_DEV_CMD5         = %08x",*((unsigned int*)&membuf[0xd8]));
+		qprintf("\n* 0dc FLASH_DEV_CMD6         = %08x",*((unsigned int*)&membuf[0xdc]));
    }
-   printf("\n* 0e8 NAND_ERASED_CW_DET_CFG = %08x",*((unsigned int*)&membuf[0xe8]));
-   printf("\n* 0ec NAND_ERASED_CW_DET_ST  = %08x",*((unsigned int*)&membuf[0xec]));
-   printf("\n* 0f0 EBI2_ECC_BUF_CFG       = %08x\n",*((unsigned int*)&membuf[0xf0]));
+   qprintf("\n* 0e8 NAND_ERASED_CW_DET_CFG = %08x",*((unsigned int*)&membuf[0xe8]));
+   qprintf("\n* 0ec NAND_ERASED_CW_DET_ST  = %08x",*((unsigned int*)&membuf[0xec]));
+   qprintf("\n* 0f0 EBI2_ECC_BUF_CFG       = %08x\n",*((unsigned int*)&membuf[0xf0]));
    break;
   case 'x': 
    exit(0);
@@ -350,13 +350,13 @@ x                 - выход из программы\n\
   case 'k':
     hello(0);
     decode_cfg0();
-    printf("\n");
+    qprintf("\n");
     decode_cfg1();
-    printf("\n");
+    qprintf("\n");
     break;
    
   default:
-    printf("\nНеопределенная команда\n");
+    qprintf("\nНеопределенная команда\n");
     break;
 }   
 }    
@@ -382,7 +382,7 @@ int opt,helloflag=0;
 while ((opt = getopt(argc, argv, "p:ic:hek:f")) != -1) {
   switch (opt) {
    case 'h': 
-     printf("\nИнтерактивная оболочка для ввода команд в загрузчик\n\n\
+     qprintf("\nИнтерактивная оболочка для ввода команд в загрузчик\n\n\
 Допустимы следующие ключи:\n\n\
 -p <tty>       - указывает имя устройства последовательного порта для общения с загрузчиком\n\
 -i             - запускает процедуру HELLO для инициализации загрузчика\n\
@@ -425,21 +425,21 @@ while ((opt = getopt(argc, argv, "p:ic:hek:f")) != -1) {
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
+   qprintf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
 #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
    return; 
 }
 if (helloflag) hello(1);
-printf("\n");
+qprintf("\n");
 
 // запуск команды из ключа -C, если есть
 if (strlen(scmdline) != 0) {
@@ -458,11 +458,11 @@ for(;;)  {
 #ifndef WIN32
  line=readline(">");
 #else
- printf(">");
+ qprintf(">");
  fgets(line, sizeof(line), stdin);
 #endif
  if (line == 0) {
-    printf("\n");
+    qprintf("\n");
     return;
  }   
  if (strlen(line) <1) continue; // слишком короткая команда

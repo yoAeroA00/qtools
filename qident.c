@@ -39,7 +39,7 @@ char devname[20]="";
 while ((opt = getopt(argc, argv, "p:")) != -1) {
   switch (opt) {
    case 'h': 
-     printf("\n Утилита предназначена для идентификации чипсета устройств, поддерживающих DMSS-протокол.\n\
+     qprintf("\n Утилита предназначена для идентификации чипсета устройств, поддерживающих DMSS-протокол.\n\
  Утилита работает с диагностическим портом устройства, находящегося в нормальном (рабочем) режиме.\n\n\
 Допустимы следующие ключи:\n\n\
 -p <tty>  - указывает имя устройства последовательного порта для общения с загрузчиком\n\
@@ -59,28 +59,28 @@ while ((opt = getopt(argc, argv, "p:")) != -1) {
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
+   qprintf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
  #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
   return; 
 }
 
 iolen=send_cmd_base(id_cmd,1,iobuf,0);
 if (iolen == 0) {
-  printf("\n Нет ответа на команду идентификации\n");
+  qprintf("\n Нет ответа на команду идентификации\n");
   return;
 }
 
 if (iobuf[0] != 0) {
-  printf("\n Неправильный ответ на команду идентификации\n");
+  qprintf("\n Неправильный ответ на команду идентификации\n");
   return;
 }
 // выделяем код чипсета
@@ -90,29 +90,29 @@ chip_code=( ((chip_code&0xff)<<8) | ((chip_code&0xff00)>>8) );
 // получаем ID чипсета по коду
 chip_id=find_chipset(chip_code);
 if (chip_id == -1) {	
-  printf("\n Чипсет не опознан, код чипсета - %04x\n",chip_code);
+  qprintf("\n Чипсет не опознан, код чипсета - %04x\n",chip_code);
   return;
 }
 // чипсет найден
 set_chipset(chip_id);
-printf("\n Чипсет: %s  (%08x)\n",get_chipname(),nand_cmd); fflush(stdout);
+qprintf("\n Чипсет: %s  (%08x)\n",get_chipname(),nand_cmd); fflush(stdout);
 
 // Определяем тип и параметры флешки
 iolen=send_cmd_base(flashid_cmd,4,iobuf,0);
 if (iolen == 0) {
-  printf("\n Ошибка идентификации flash\n");
+  qprintf("\n Ошибка идентификации flash\n");
   return;
 }
 
 memcpy(&fid,iobuf,sizeof(fid));
 if (fid.diag_errno != 0) {
-  printf("\n Ошибка идентификации flash\n");
+  qprintf("\n Ошибка идентификации flash\n");
   return;
 }
-printf("\n Flash: %s %s, vid=%02x  pid=%02x",(fid.device_type?"NAND":"NOR"),fid.device_name,fid.maker_id,fid.device_id);
+qprintf("\n Flash: %s %s, vid=%02x  pid=%02x",(fid.device_type?"NAND":"NOR"),fid.device_name,fid.maker_id,fid.device_id);
 //printf("\n Размер EFS:      %i блоков",fid.total_no_of_blocks);
-printf("\n Страниц на блок: %i",fid.no_of_pages_per_block);
-printf("\n Размер страницы: %i",fid.page_size);
-printf("\n Размер ООВ:      %i",fid.total_page_size-fid.page_size);
-printf("\n");
+qprintf("\n Страниц на блок: %i",fid.no_of_pages_per_block);
+qprintf("\n Размер страницы: %i",fid.page_size);
+qprintf("\n Размер ООВ:      %i",fid.total_page_size-fid.page_size);
+qprintf("\n");
 } 

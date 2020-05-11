@@ -67,7 +67,7 @@ else strncpy(filename,name,199);
   
 pf=fopen(filename,"rb");
 if (pf == 0) {
-   printf("\n! Ошибка открытия файла таблицы разделов %s\n",filename);
+   qprintf("\n! Ошибка открытия файла таблицы разделов %s\n",filename);
    return 0;
 } 
 fread(buf,1024,1,pf); // читаем таблицу разделов из файла
@@ -99,8 +99,8 @@ else return load_ptable_file(name);
 //***************************************************
 void print_ptable_head() {
 
-  printf("\n #  начало  размер   A0 A1 A2 F#  формат ------ Имя------");     
-  printf("\n============================================================\n");
+  qprintf("\n #  начало  размер   A0 A1 A2 F#  формат ------ Имя------");     
+  qprintf("\n============================================================\n");
 }
 
 
@@ -111,15 +111,15 @@ int show_part(int pn) {
   
 if (!validpart) return 0; // таблица еще не загружена
 if (pn>=fptable.numparts) return 0; // неправильный номер раздела
-printf("\r%02u  %6x",
+qprintf("\r%02u  %6x",
        pn,
        fptable.part[pn].offset);
 
 if (fptable.part[pn].len != 0xffffffff)
-  printf("  %6.6x   ",fptable.part[pn].len);
-else printf("  ------   ");
+  qprintf("  %6.6x   ",fptable.part[pn].len);
+else qprintf("  ------   ");
 
-printf("%02x %02x %02x %02x   %s   %.16s\n",
+qprintf("%02x %02x %02x %02x   %s   %.16s\n",
        fptable.part[pn].attr1,
        fptable.part[pn].attr2,
        fptable.part[pn].attr3,
@@ -141,8 +141,8 @@ int i;
 if (!validpart) return; // таблица еще не загружена
 print_ptable_head();
 for (i=0;i<fptable.numparts;i++) show_part(i);
-printf("============================================================");
-printf("\n Версия таблицы разделов: %i\n",fptable.version);
+qprintf("============================================================");
+qprintf("\n Версия таблицы разделов: %i\n",fptable.version);
 }
 
 //*************************************

@@ -58,22 +58,22 @@ cmdbuf[1]=mode;
 //printf("\n");
 //dump(cmdbuf,len+2,0);
 
-printf("\n Отсылаем таблицу разделов...");
+qprintf("\n Отсылаем таблицу разделов...");
 iolen=send_cmd(cmdbuf,len+2,iobuf);
 
 if (iobuf[1] != 0x1a) {
-  printf(" ошибка!");
+  qprintf(" ошибка!");
   show_errpacket("send_ptable()",iobuf,iolen);
   if (iolen == 0) {
-    printf("\n Требуется загрузчик в режиме тихого запуска\n");
+    qprintf("\n Требуется загрузчик в режиме тихого запуска\n");
   }
   exit(1);
 }  
 if (iobuf[2] == 0) {
-  printf("ok");
+  qprintf("ok");
   return;
 }  
-printf("\n Таблицы разделов не совпадают - требуется полная перепрошивка модема (ключ -f)\n");
+qprintf("\n Таблицы разделов не совпадают - требуется полная перепрошивка модема (ключ -f)\n");
 exit(1);
 }
 
@@ -119,7 +119,7 @@ unsigned int forceflag=0;
 while ((opt = getopt(argc, argv, "hp:s:w:mk:f")) != -1) {
   switch (opt) {
    case 'h': 
-    printf("\n  Утилита предназначена для записи разделов (по таблице) на флеш модема\n\
+    qprintf("\n  Утилита предназначена для записи разделов (по таблице) на флеш модема\n\
 Допустимы следующие ключи:\n\n\
 -p <tty>  - указывает имя устройства последовательного порта для общения с загрузчиком\n\
 -k #      - код чипсета (-kl - получить список кодов)\n\
@@ -145,7 +145,7 @@ while ((opt = getopt(argc, argv, "hp:s:w:mk:f")) != -1) {
      // выделяем имя файла
      fptr=strchr(iobuf,':');
      if (fptr == 0) {
-       printf("\nОшибка в параметрах ключа -w - не указано имя раздела: %s\n",optarg);
+       qprintf("\nОшибка в параметрах ключа -w - не указано имя раздела: %s\n",optarg);
        return;
      }
      *fptr=0; // ограничитель имени файла
@@ -156,7 +156,7 @@ while ((opt = getopt(argc, argv, "hp:s:w:mk:f")) != -1) {
      strcat(ptable[npart].partname,fptr); 
      npart++;
      if (npart>19) {
-       printf("\nСлишком много разделов\n");
+       qprintf("\nСлишком много разделов\n");
        return;
      }
      break;
@@ -166,7 +166,7 @@ while ((opt = getopt(argc, argv, "hp:s:w:mk:f")) != -1) {
        if (optarg[0] == '-')   part=fopen("ptable/current-w.bin","rb");
        else part=fopen(optarg,"rb");
        if (part == 0) {
-         printf("\nОшибка открытия файла таблицы разделов\n");
+         qprintf("\nОшибка открытия файла таблицы разделов\n");
          return;
        }	 
        fread(ptabraw,1024,1,part); // читаем таблицу разделов из файла
@@ -192,16 +192,16 @@ while ((opt = getopt(argc, argv, "hp:s:w:mk:f")) != -1) {
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
+   qprintf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
 #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
    return; 
 }
@@ -214,20 +214,20 @@ hello(2);
 
 // вывод таблицы прошивки
 
-printf("\n #  --Раздел--  ------- Файл -----");     
+qprintf("\n #  --Раздел--  ------- Файл -----");     
 for(i=0;i<npart;i++) {
-    printf("\n%02u  %-14.14s  %s",i,ptable[i].partname,ptable[i].filename);
+    qprintf("\n%02u  %-14.14s  %s",i,ptable[i].partname,ptable[i].filename);
 }
-printf("\n");
+qprintf("\n");
 if (listmode)  return; // ключ -m - на этом все.
   
-printf("\n secure mode...");
+qprintf("\n secure mode...");
 if (!secure_mode()) {
-  printf("\n Ошибка входа в режим Secure mode\n");
+  qprintf("\n Ошибка входа в режим Secure mode\n");
 //  restore_reg();
   return;
 }
-printf("ok");
+qprintf("ok");
 qclose(0);  //####################################################
 #ifndef WIN32
   usleep(50000);
@@ -242,7 +242,7 @@ port_timeout(1000);
 for(i=0;i<npart;i++) {
   part=fopen(ptable[i].filename,"rb");
   if (part == 0) {
-    printf("\n Раздел %u: ошибка открытия файла %s\n",i,ptable[i].filename);
+    qprintf("\n Раздел %u: ошибка открытия файла %s\n",i,ptable[i].filename);
     return;
   }
   
@@ -251,10 +251,10 @@ for(i=0;i<npart;i++) {
   fsize=ftell(part);
   rewind(part);
 
-  printf("\n Запись раздела %u (%s)",i,ptable[i].partname); fflush(stdout);
+  qprintf("\n Запись раздела %u (%s)",i,ptable[i].partname); fflush(stdout);
   // отсылаем заголовок
   if (!send_head(ptable[i].partname)) {
-    printf("\n! Модем отверг заголовок раздела\n");
+    qprintf("\n! Модем отверг заголовок раздела\n");
     fclose(part);
     return;
   }  
@@ -268,11 +268,11 @@ for(i=0;i<npart;i++) {
     scmd[4]=(adr>>24)&0xff;
     memset(scmd+5,0xff,wbsize+1);   // заполняем буфер данных FF
     len=fread(scmd+5,1,wbsize,part);
-    printf("\r Запись раздела %u (%s): байт %u из %u (%i%%) ",i,ptable[i].partname,adr,fsize,(adr+1)*100/fsize); fflush(stdout);
+    qprintf("\r Запись раздела %u (%s): байт %u из %u (%i%%) ",i,ptable[i].partname,adr,fsize,(adr+1)*100/fsize); fflush(stdout);
     iolen=send_cmd_base(scmd,len+5,iobuf,0);
     if ((iolen == 0) || (iobuf[1] != 8)) {
       show_errpacket("Пакет данных ",iobuf,iolen);
-      printf("\n Ошибка записи раздела %u (%s): адрес:%06x\n",i,ptable[i].partname,adr);
+      qprintf("\n Ошибка записи раздела %u (%s): адрес:%06x\n",i,ptable[i].partname,adr);
       fclose(part);
       return;
     }
@@ -280,18 +280,18 @@ for(i=0;i<npart;i++) {
   }
   // Раздел передан полностью
   if (!qclose(1)) {
-    printf("\n Ошибка закрытия потока даных\n");
+    qprintf("\n Ошибка закрытия потока даных\n");
     fclose(part);
     return;
   }  
-  printf(" ... запись завершена");
+  qprintf(" ... запись завершена");
 #ifndef WIN32
   usleep(500000);
 #else
   Sleep(500);
 #endif
 }
-printf("\n");
+qprintf("\n");
 fclose(part);
 }
 

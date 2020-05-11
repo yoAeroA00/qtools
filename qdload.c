@@ -12,19 +12,19 @@ FILE* out;
 
 // загружаем системную таблицу разделов из MIBIB
 load_ptable("@");
-printf("-----------------------------------------------------");
+qprintf("-----------------------------------------------------");
 // проверяем таблицу
 if (!validpart) {
-   printf("\nСистемная таблица разделов не найдена\n");
+   qprintf("\nСистемная таблица разделов не найдена\n");
    return;
 }
 out=fopen("ptable/current-r.bin","wb");
 if (out == 0) {
-  printf("\n Ошибка открытия выходного файла ptable/current-r.bin");
+  qprintf("\n Ошибка открытия выходного файла ptable/current-r.bin");
   return;
 }  
 fwrite(&fptable,sizeof(fptable),1,out);
-printf("\n * Найдена таблица разделов режима чтения");
+qprintf("\n * Найдена таблица разделов режима чтения");
 fclose (out);
 /*
 // Ищем таблицу записи
@@ -40,17 +40,17 @@ for (pg=pg+1;pg<ppb;pg++) {
   npar=*((unsigned int*)&buf[12]); // число разделов в таблице
   out=fopen("ptable/current-w.bin","wb");
   if (out == 0) {
-    printf("\n Ошибка открытия выходного файла ptable/current-w.bin");
+    qprintf("\n Ошибка открытия выходного файла ptable/current-w.bin");
     return;
   }  
   fwrite(buf,16+28*npar,1,out);
   fclose (out);
-  printf("\n * Найдена таблица разделов режима записи");
+  qprintf("\n * Найдена таблица разделов режима записи");
   return;
 }
-printf("\n - Таблица разделов режима записи не найдена");
+qprintf("\n - Таблица разделов режима записи не найдена");
 */
-printf("\n");
+qprintf("\n");
   
 }
 
@@ -86,7 +86,7 @@ unsigned int delay=2;
 while ((opt = getopt(argc, argv, "p:k:a:histd:q")) != -1) {
   switch (opt) {
    case 'h': 
-     printf("\n Утилита предназначена для загрузки программ-прошивальщика (E)NPRG в память модема\n\n\
+     qprintf("\n Утилита предназначена для загрузки программ-прошивальщика (E)NPRG в память модема\n\n\
 Допустимы следующие ключи:\n\n\
 -p <tty>  - указывает имя устройства последовательного порта, переведенного в download mode\n\
 -i        - запускает процедуру HELLO для инициализации загрузчика\n\
@@ -139,7 +139,7 @@ while ((opt = getopt(argc, argv, "p:k:a:histd:q")) != -1) {
 }
 
 if ((tflag == 1) && (helloflag == 0)) {
-  printf("\n Ключ -t без ключа -i указывать нельзя\n");
+  qprintf("\n Ключ -t без ключа -i указывать нельзя\n");
   exit(1);
 }  
 
@@ -147,16 +147,16 @@ delay*=100000; // переводим в микросекунды
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
+   qprintf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
 #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
    return; 
 }
@@ -174,7 +174,7 @@ if (!sahara_flag) {
  // открываем входной файл
  in=fopen(argv[optind],"rb");
  if (in == 0) {
-  printf("\nОшибка открытия входного файла\n");
+  qprintf("\nОшибка открытия входного файла\n");
   return;
  } 
  // Идентифицируем загрузчик
@@ -184,7 +184,7 @@ if (!sahara_flag) {
 
  if (i == 0xdeadbeef) {
    // нашли блок - разбираем
-   printf("\n Найден блок идентификации загрузчика");
+   qprintf("\n Найден блок идентификации загрузчика");
    fread(&ichipset,4,1,in);
    fread(&iaddr,4,1,in);
    ident_flag=1;
@@ -196,16 +196,16 @@ if (!sahara_flag) {
 
 // проверяем тип чипсета
 if ((chip_type == 0)&&(helloflag==1)) {
-  printf("\n Не указан тип чипсета - полная инициализация невозможна\n");
+  qprintf("\n Не указан тип чипсета - полная инициализация невозможна\n");
   helloflag=2;
 }  
 
-if ((helloflag == 0)&& (chip_type != 0))  printf("\n Чипсет: %s",get_chipname());
+if ((helloflag == 0)&& (chip_type != 0))  qprintf("\n Чипсет: %s",get_chipname());
 
 //printf("\n chip_type = %i   sahara = %i",chip_type,sahara_flag);
 
 if ((start == 0) && !sahara_flag) {
-  printf("\n Не указан адрес загрузки\n");
+  qprintf("\n Не указан адрес загрузки\n");
   fclose(in);
   return;
 }  
@@ -224,7 +224,7 @@ if (sahara_flag) {
 
 	if (helloflag) {
 		hello(helloflag);
-		printf("\n");
+		qprintf("\n");
 		if (tflag && (helloflag != 2)) extract_ptable();  // вынимаем таблицы разделов
 	}
   }
@@ -233,10 +233,10 @@ if (sahara_flag) {
 
 //------- Вариант загрузки через запись загрузчика в память ----------
 
-printf("\n Файл загрузчика: %s\n Адрес загрузки: %08x",argv[optind],start);
+qprintf("\n Файл загрузчика: %s\n Адрес загрузки: %08x",argv[optind],start);
 iolen=send_cmd_base(cmd1,1,iobuf,1);
 if (iolen != 5) {
-   printf("\n Модем не находится в режиме загрузки\n");
+   qprintf("\n Модем не находится в режиме загрузки\n");
 //   dump(iobuf,iolen,0);
    fclose(in);
    return;
@@ -249,7 +249,7 @@ fstat(_fileno(in),&fstatus);
 #endif
 filesize=fstatus.st_size;
 if (ident_flag) filesize-=12; // отрезаем хвост - блок идентификации
-printf("\n Размер файла: %i\n",(unsigned int)filesize);
+qprintf("\n Размер файла: %i\n",(unsigned int)filesize);
 partsize=dlblock;
 
 // Цикл поблочной загрузки 
@@ -267,11 +267,11 @@ for(i=0;i<filesize;i+=dlblock) {
    cmddl[5]=(partsize>>8)&0xff;
    cmddl[6]=(partsize)&0xff;
  iolen=send_cmd_base(cmddl,partsize+7,iobuf,1);
- printf("\r Загружено: %i",i+partsize);
+ qprintf("\r Загружено: %i",i+partsize);
 // dump(iobuf,iolen,0);
 } 
 // вписываем адрес в команду запуска
-printf("\n Запуск загрузчика..."); fflush(stdout);
+qprintf("\n Запуск загрузчика..."); fflush(stdout);
 cmdstart[1]=(start>>24)&0xff;
 cmdstart[2]=(start>>16)&0xff;
 cmdstart[3]=(start>>8)&0xff;
@@ -283,13 +283,13 @@ usleep(delay);   // ждем инициализации загрузчика
 #else
 Sleep(delay/1000);   // ждем инициализации загрузчика
 #endif
-printf("ok\n");
+qprintf("ok\n");
 if (helloflag) {
   if (!open_port(devname))  {
 #ifndef WIN32
-     printf("\n - Последовательный порт %s не открывается\n", devname); 
+     qprintf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-     printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+     qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
      fclose(in);
      return; 
@@ -298,7 +298,7 @@ if (helloflag) {
   if (helloflag != 2)
      if (!bad_loader && tflag) extract_ptable();  // вынимаем таблицы разделов
 }  
-printf("\n");
+qprintf("\n");
 fclose(in);
 }
 
