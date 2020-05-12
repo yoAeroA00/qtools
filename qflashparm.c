@@ -17,7 +17,7 @@ int sflag=0;
 int opt;
 int badloc;
 
-while ((opt = getopt(argc, argv, "hp:s:u:e:d:")) != -1) {
+while ((opt = getopt(argc, argv, "hp:k:s:u:e:d:")) != -1) {
   switch (opt) {
    case 'h': 
      qprintf("\n Утилита предназначена установки параметров NAND-контроллера\n\n\
@@ -32,6 +32,10 @@ while ((opt = getopt(argc, argv, "hp:s:u:e:d:")) != -1) {
      
    case 'p':
     strcpy(devname,optarg);
+    break;
+
+   case 'k':
+    define_chipset(optarg);
     break;
     
    case 's':
