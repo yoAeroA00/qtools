@@ -1,5 +1,12 @@
 #include "include.h"
 
+int test_empty(unsigned char* srcbuf)
+{
+    for(int i = 0; i < pagesize; i++)
+        if(srcbuf[i] != 0xff)
+            return 0;
+    return 1;
+}
 
 //**********************************************************
 //*   Настройка чипсета на линуксовый формат раздела флешки
@@ -308,7 +315,7 @@ switch (wmode) {
     
   case w_image: 
     qprintf("сырой образ без расчета ЕСС\n");
-	qprintf(" Формат данных: %u+%u\n",sectorsize,oobsize); 
+    qprintf(" Формат данных: %u+%u\n",sectorsize,oobsize); 
     break;
     
   case w_yaffs: 
@@ -317,7 +324,7 @@ switch (wmode) {
     break;
 
   case w_linout: 
-     qprintf("линуксовый формат на флешке\n");
+    qprintf("линуксовый формат на флешке\n");
     set_linux_format();
     break;
 }   
@@ -356,7 +363,13 @@ for(block=startblock;block<(startblock+flen);block++) {
     if (wmode == w_linout) readlen=fread(srcbuf,1,pagesize,in);
     else readlen=fread(srcbuf,1,pagesize+(spp*oobsize),in);
     if (readlen == 0) goto endpage;  // 0 - все данные из файла прочитаны
- 
+
+    if(test_empty(srcbuf))
+    {
+        qprintf("\n Пропущена пустая страница: блок %x, страница %x\n",block,page);
+        continue;
+    }
+
     // srcbuf прочитан - проверяем, не бедблок ли там
     if (test_badpattern(srcbuf)) {
       // там действительно бедблок
@@ -546,4 +559,3 @@ mempoke(nand_cfg1,cfg1bak);
 mempoke(nand_ecc_cfg,cfgeccbak);
 qprintf("\n");
 }
-
