@@ -198,20 +198,26 @@ qprintf("\
   }
 }  
 
+
 if (uxflag+usflag+ucflag+umflag > 1) {
   qprintf("\n Ключи -ux, -us, -uc, -um несовместимы между собой\n");
   return;
-}  
+}
+
+if (uxflag+ubflag+umflag > 1) {
+  qprintf("\n Ключи -ux, -ub, -um несовместимы между собой\n");
+  return;
+}
 
 if (uxflag+ubflag > 1) {
   qprintf("\n Ключи -ux и -ub несовместимы между собой\n");
   return;
-}  
+}
 
 if (uxflag && (wmode != w_image)) {
   qprintf("\n Ключ -ux допустим только в режиме -fi\n");
   return;
-}  
+}
 
 #ifdef WIN32
 if (*devname == '\0')
@@ -347,17 +353,17 @@ for(block=startblock;block<(startblock+flen);block++) {
   if (badflag) {
 //    qprintf("\n %x - badflag\n",block);
     // пропускаем дефектный блок и идем дальше
-    if (!umflag && !ubflag) {
+    if (!ubflag && !(umflag || ucflag)) {
       flen++;   // сдвигаем границу завершения вводного файла - блок мы пропустили, данные раздвигаются
       qprintf("\n Блок %x дефектный - пропускаем\n",block);
       continue;
-    }  
-  }  
+    }
+  }
   // стираем блок
   if (!badflag || ubflag) {
     block_erase(block);
-  }  
-              
+  }
+
   bch_reset();
 
   // цикл по страницам
@@ -378,29 +384,54 @@ for(block=startblock;block<(startblock+flen);block++) {
 
     // srcbuf прочитан - проверяем, не бедблок ли там
     if (test_badpattern(srcbuf)) {
-      // там действительно бедблок
-      if (!usflag) {
-	if (page == 0) qprintf("\n Обнаружен признак дефектного блока во входном дампе - пропускаем\n");
-	continue;  // -us - пропускаем этот блок, постранично
-      }
-      if (ucflag) {
-	// создание бедблока
-	mark_bad(block);
-	if (page == 0) qprintf("\r Блок %x отмечен как дефектный в соответствии с входным файлом!\n",block);
-	continue;
-      }
-      if (umflag && !badflag) {
-	// входной бедблок не соответствует бедблоку на флешке
-	qprintf("\n Блок %x: на flash дефект не обнаружен, завершаем работу!\n",block);
-	return;
-      }
-      if (umflag && badflag && page == 0) qprintf("\r Блок %x - дефекты соответствуют, продолжаем запись\n",block);
+        // там действительно бедблок
+        if (usflag)
+        {
+            // если сказано писать как есть, пишим как есть
+            if(page == 0)
+                qprintf("\r Блок %x - признак бэдблока записан \"как есть\", продолжаем запись\n",block);
+        }
+        else if (!badflag)
+        {
+            // входной блок не соответствует бэдблоку на флешке, либо нам всё равно что на флешке
+            if(ucflag)
+            {
+                if(page == 0)
+                {
+                    // создание бедблока
+                    // todo: откат в случаи ошибки
+                    mark_bad(block);
+                    qprintf("\r Блок %x отмечен как дефектный в соответствии с входным файлом!\n",block);
+                }
+                continue;
+            }
+            else if (umflag)
+            {
+                qprintf("\r Блок %x: на flash дефект не обнаружен, завершаем работу!\n",block);
+                return;
+            }
+            else
+            {
+	        if (page == 0)
+                    qprintf("\r Обнаружен признак дефектного блока во входном дампе - пропускаем\n");
+	        continue;  // пропускаем этот блок, постранично
+            }
+        }
+        else
+        {
+            // если нам не плевать на бэдблоки флешки и бэдблок действительно есть
+            if (page == 0)
+                qprintf("\r Блок %x - дефекты соответствуют, продолжаем запись\n",block);
+	    continue;  // пропускаем этот блок, постранично
+        }
     }
-    else if (umflag && badflag) {
-	qprintf("\n Блок %x: на flash обнаружен неожиданный дефект, завершаем работу!\n",block);
+
+    if (badflag)
+    {
+	qprintf("\r Блок %x: на flash обнаружен неожиданный дефект, завершаем работу!\n",block);
 	return;
     }
-      
+
     // разбираем дамп по буферам
     switch (wmode) {
       case w_standart:
