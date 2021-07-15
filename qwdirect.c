@@ -54,6 +54,7 @@ unsigned int cfg0bak,cfg1bak,cfgeccbak,cfgecctemp;
 unsigned int i,opt;
 unsigned int block,page,sector;
 unsigned int startblock=0;
+unsigned int stopblock=maxblock;
 unsigned int bsize;
 unsigned int fileoffset=0;
 int badflag;
@@ -67,7 +68,7 @@ int readlen;
 #define w_image    3
 #define w_linout   4
 
-while ((opt = getopt(argc, argv, "hp:k:b:f:vc:z:l:o:u:")) != -1) {
+while ((opt = getopt(argc, argv, "hp:k:b:a:f:vc:z:l:o:u:")) != -1) {
   switch (opt) {
    case 'h': 
     qprintf("\n  Утилита предназначена для записи сырого образа flash через регистры контроллера\n\
@@ -75,6 +76,7 @@ while ((opt = getopt(argc, argv, "hp:k:b:f:vc:z:l:o:u:")) != -1) {
 -p <tty>  - указывает имя устройства последовательного порта для общения с загрузчиком\n\
 -k #      - код чипсета (-kl - получить список кодов)\n\
 -b #      - начальный номер блока для записи \n\
+-a #      - номер блока на флешке до котороко можно записывать (по умолчанию до конца флешки)\n\
 -f <x>    - выбор формата записи:\n\
         -fs (по умолчанию) - запись только секторов данных\n\
         -fl - запись только секторов данных в линуксовом формате\n\
@@ -114,6 +116,10 @@ qprintf("\
      
    case 'b':
      sscanf(optarg,"%x",&startblock);
+     break;
+
+   case 'a':
+     sscanf(optarg,"%x",&stopblock);
      break;
      
    case 'z':
@@ -251,7 +257,6 @@ else if (optind < argc) {// в режиме стирания входной фа
 
 hello(0);
 
-
 if ((wmode == w_standart)||(wmode == w_linux)) oobsize=0; // для входных файлов без OOB
 oobsize/=spp;   // теперь oobsize - это размер OOB на один сектор
 
@@ -267,7 +272,7 @@ cfgeccbak=mempeek(nand_ecc_cfg);
 // режим стирания
 //-------------------------------------------
 if (cflag) {
-  if ((startblock+cflag) > maxblock) cflag=maxblock-startblock;
+  if ((startblock+cflag) > stopblock) cflag=stopblock-startblock;
   qprintf("\n");
   for (block=startblock;block<(startblock+cflag);block++) {
     qprintf("\r Стирание блока %03x",block); 
@@ -344,7 +349,7 @@ switch (wmode) {
 port_timeout(1000);
 
 // цикл по блокам
-if ((startblock+flen) > maxblock) flen=maxblock-startblock;
+if ((startblock+flen) > stopblock) flen=stopblock-startblock;
 for(block=startblock;block<(startblock+flen);block++) {
   // проверяем, если надо, дефектность блока
   badflag=0;
@@ -355,8 +360,8 @@ for(block=startblock;block<(startblock+flen);block++) {
     // пропускаем дефектный блок и идем дальше
     if (!ubflag && !(umflag || ucflag)) {
       qprintf("\r Блок %x дефектный - пропускаем\n",block);
-      if(startblock+flen == maxblock)
-          qprintf("\n Внимание: последний блок файла не будет записан, нет места на flash\n\n");
+      if(startblock+flen == stopblock)
+          qprintf("\n Внимание: последний блок файла не будет записан, выход за граница области записи\n\n");
       else
           flen++;   // сдвигаем границу завершения вводного файла - блок мы пропустили, данные раздвигаются
       continue;
