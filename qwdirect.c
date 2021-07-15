@@ -354,8 +354,11 @@ for(block=startblock;block<(startblock+flen);block++) {
 //    qprintf("\n %x - badflag\n",block);
     // пропускаем дефектный блок и идем дальше
     if (!ubflag && !(umflag || ucflag)) {
-      flen++;   // сдвигаем границу завершения вводного файла - блок мы пропустили, данные раздвигаются
-      qprintf("\n Блок %x дефектный - пропускаем\n",block);
+      qprintf("\r Блок %x дефектный - пропускаем\n",block);
+      if(startblock+flen == maxblock)
+          qprintf("\n Внимание: последний блок файла не будет записан, нет места на flash\n\n");
+      else
+          flen++;   // сдвигаем границу завершения вводного файла - блок мы пропустили, данные раздвигаются
       continue;
     }
   }
