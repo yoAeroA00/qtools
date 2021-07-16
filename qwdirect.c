@@ -54,7 +54,7 @@ unsigned int cfg0bak,cfg1bak,cfgeccbak,cfgecctemp;
 unsigned int i,opt;
 unsigned int block,page,sector;
 unsigned int startblock=0;
-unsigned int stopblock=maxblock;
+unsigned int stopblock = -1;
 unsigned int bsize;
 unsigned int fileoffset=0;
 int badflag;
@@ -68,7 +68,7 @@ int readlen;
 #define w_image    3
 #define w_linout   4
 
-while ((opt = getopt(argc, argv, "hp:k:b:a:f:vc:z:l:o:u:")) != -1) {
+while ((opt = getopt(argc, argv, "hp:k:b:a:f:vc:z:l:o:u:s")) != -1) {
   switch (opt) {
    case 'h': 
     qprintf("\n  Утилита предназначена для записи сырого образа flash через регистры контроллера\n\
@@ -204,7 +204,6 @@ qprintf("\
   }
 }  
 
-
 if (uxflag+usflag+ucflag+umflag > 1) {
   qprintf("\n Ключи -ux, -us, -uc, -um несовместимы между собой\n");
   return;
@@ -256,6 +255,9 @@ else if (optind < argc) {// в режиме стирания входной фа
 }
 
 hello(0);
+
+if(stopblock == -1)
+    stopblock == maxblock;
 
 if ((wmode == w_standart)||(wmode == w_linux)) oobsize=0; // для входных файлов без OOB
 oobsize/=spp;   // теперь oobsize - это размер OOB на один сектор
@@ -361,7 +363,7 @@ for(block=startblock;block<(startblock+flen);block++) {
     if (!ubflag && !(umflag || ucflag)) {
       qprintf("\r Блок %x дефектный - пропускаем\n",block);
       if(startblock+flen == stopblock)
-          qprintf("\n Внимание: последний блок файла не будет записан, выход за граница области записи\n\n");
+          qprintf("\n Внимание: последний блок файла не будет записан, выход за границу области записи\n\n");
       else
           flen++;   // сдвигаем границу завершения вводного файла - блок мы пропустили, данные раздвигаются
       continue;
