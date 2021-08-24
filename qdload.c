@@ -267,9 +267,18 @@ for(i=0;i<filesize;i+=dlblock) {
    cmddl[5]=(partsize>>8)&0xff;
    cmddl[6]=(partsize)&0xff;
  iolen=send_cmd_base(cmddl,partsize+7,iobuf,1);
- qprintf("\r Загружено: %i",i+partsize);
-// dump(iobuf,iolen,0);
-} 
+ if(iobuf[1] == 0x02)
+     qprintf("\r Загружено: %i",i+partsize);
+ else
+ {
+     qprintf("\n Ошибка загрузки\n--\n");
+     dump(iobuf,iolen,0);
+     qprintf("\n--\n");
+     return;
+ }
+}
+qprintf(" OK\n");
+
 // вписываем адрес в команду запуска
 qprintf("\n Запуск загрузчика..."); fflush(stdout);
 cmdstart[1]=(start>>24)&0xff;
