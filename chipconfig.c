@@ -295,7 +295,7 @@ for(i=0;i<maxchip ;i++)
   if (chipset[i].id == c) chip_type=i;
 
 if (chip_type == -1) {
-  qprintf("\n - Неверный код чипсета - %i",chip_type);
+  qprintf("\n - Неверный код чипсета - %d\n", c);
   exit(1);
 }
 // устанавливаем адреса регистров чипсета
