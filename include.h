@@ -31,7 +31,6 @@ typedef uint16_t uint16;
             #include <io.h>
         #endif
         #include <windows.h>
-        #include "qprintf_win.h"
         #define usleep(n) Sleep(n/1000)
     #else
         #include <getopt.h>
@@ -39,7 +38,6 @@ typedef uint16_t uint16;
         #include <unistd.h>
         #include <readline/readline.h>
         #include <readline/history.h>
-        #define qprintf printf
     #endif
 
     #ifndef __GNUC__

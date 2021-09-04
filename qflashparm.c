@@ -20,7 +20,7 @@ int badloc;
 while ((opt = getopt(argc, argv, "hp:k:s:u:e:d:")) != -1) {
   switch (opt) {
    case 'h': 
-     qprintf("\n Утилита предназначена установки параметров NAND-контроллера\n\n\
+     printf("\n Утилита предназначена установки параметров NAND-контроллера\n\n\
 Допустимы следующие ключи:\n\n\
 -p <tty> - указывает имя устройства последовательного порта для общения с загрузчиком\n\
 -s nnn   - установка размера поля spare на сектор\n\
@@ -67,16 +67,16 @@ while ((opt = getopt(argc, argv, "hp:k:s:u:e:d:")) != -1) {
 #ifdef WIN32
 if (*devname == '\0')
 {
-   qprintf("\n - Последовательный порт не задан\n"); 
+   printf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
  #ifndef WIN32
-   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
+   printf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
   return; 
 }

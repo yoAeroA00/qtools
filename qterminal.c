@@ -36,20 +36,20 @@ if (dlen == 0) return; // ответа нет
 
 // Получен ответ - выводим его на экран
 if (hexflag) {
-  qprintf("\n");rlen=-1;
+  printf("\n");rlen=-1;
   dump(ibuf,dlen,0);
-  qprintf("\n");
+  printf("\n");
 }
 else {
   ibuf[dlen]=0; // конец строки
-  qprintf("\n");
+  printf("\n");
   if (wrapperlen == 0) puts(ibuf);
   else {
     clen=wrapperlen;
     for(i=0;i<dlen;i+=wrapperlen) {
        if ((dlen-i) < wrapperlen) clen=dlen-i; // длина последней строки
        fwrite(ibuf+i,1,clen,stdout);
-       qprintf("\n");
+       printf("\n");
        fflush(stdout);
     }
   }
@@ -100,7 +100,7 @@ int opt;
 while ((opt = getopt(argc, argv, "p:xw:c:hd:ma")) != -1) {
   switch (opt) {
    case 'h': 
-     qprintf("\nТерминальная программа для ввода АТ-команд в модем\n\n\
+     printf("\nТерминальная программа для ввода АТ-команд в модем\n\n\
 Допустимы следующие ключи:\n\n\
 -p <tty>       - указывает имя устройства последовательного порта\n\
 -d <time>      - задает время ожидания ответа модема в ms\n\
@@ -148,16 +148,16 @@ while ((opt = getopt(argc, argv, "p:xw:c:hd:ma")) != -1) {
 #ifdef WIN32
 if (*devname == '\0')
 {
-   qprintf("\n - Последовательный порт не задан\n"); 
+   printf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
 #ifndef WIN32
-   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
+   printf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
    return; 
 }
@@ -186,11 +186,11 @@ for(;;)  {
 #ifndef WIN32
  line=readline(">");
 #else
- qprintf(">");
+ printf(">");
  fgets(line, sizeof(line), stdin);
 #endif
  if (line == 0) {
-    qprintf("\n");
+    printf("\n");
     return;
  }   
  if (strlen(line) == 0) continue; // пустая команда

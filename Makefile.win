@@ -1,6 +1,5 @@
-CC       = gcc
-LIBS     = -lreadline
-CFLAGS   = -O2 -Wno-unused-result -Wunused
+CC       = i686-w64-mingw32-gcc
+CFLAGS   = -O2 -Wno-unused-result -Wunused -fexec-charset=cp866
 
 OBJS     = hdlc.o qcio.o memio.o chipconfig.o
 BINS     = qcommand qrmem qrflash qdload mibibsplit qwflash qwdirect qefs qnvram qblinfo qident qterminal qbadblock qflashparm
@@ -13,11 +12,11 @@ all: $(BINS)
 	$(CC) -c $(CFLAGS) $(filter %.c,$^) -o $@
 
 $(BINS): %: %.o $(OBJS)
-	$(CC) $(LDFLAGS) $(filter %.o,$^) -o $@ $(LIBS)
+	$(CC) $(LDFLAGS) $(filter %.o,$^) -o $@
 
 clean:
 	rm -f *.o
-	rm -f $(BINS)
+	rm -f *.exe
 
 qefs : efsio.o
 qdload : sahara.o

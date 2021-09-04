@@ -16,7 +16,7 @@ int pn;
 
 out=fopen("badblock.lst","w");
 if (out == 0) {
-  qprintf("\n Невозможно создать файл badblock.lst\n");
+  printf("\n Невозможно создать файл badblock.lst\n");
   return;
 }
 fprintf(out,"Список дефектных блоков");
@@ -24,13 +24,13 @@ fprintf(out,"Список дефектных блоков");
 // загружаем таблицу разделов с флешки
 load_ptable("@");
 
-qprintf("\nПостроение списка дефектных блоков в интервале %08x - %08x\n",start,start+len);
+printf("\nПостроение списка дефектных блоков в интервале %08x - %08x\n",start,start+len);
 
 // главный цикл по блокам
 for(blk=start;blk<(start+len);blk++) {
- qprintf("\r Проверка блока %08x",blk); fflush(stdout);
+ printf("\r Проверка блока %08x",blk); fflush(stdout);
  if (check_block(blk)) {
-     qprintf(" - badblock");
+     printf(" - badblock");
      fprintf(out,"\n%08x",blk);
      // увеличиваем счетчик бедблоков
      badcount++;
@@ -39,16 +39,16 @@ for(blk=start;blk<(start+len);blk++) {
        // поиск раздела, в котором лежит этот блок
        pn=block_to_part(blk);
        if (pn != -1) {
-         qprintf(" (%s+%x)",part_name(pn),blk-part_start(pn));
+         printf(" (%s+%x)",part_name(pn),blk-part_start(pn));
          fprintf(out," (%s+%x)",part_name(pn),blk-part_start(pn));
        }       	 
     }
-    qprintf("\n");
+    printf("\n");
   }
 }     // blk
 fprintf(out,"\n");
 fclose (out);
-qprintf("\r * Всего дефектных блоков: %i\n",badcount);
+printf("\r * Всего дефектных блоков: %i\n",badcount);
 }
  
 
@@ -64,12 +64,12 @@ int pg,sec;
 int stat;
 FILE* out; 
 
-qprintf("\nПостроение списка ошибок ЕСС в интервале %08x - %08x\n",start,start+len);
+printf("\nПостроение списка ошибок ЕСС в интервале %08x - %08x\n",start,start+len);
 
 out=fopen("eccerrors.lst","w");
 fprintf(out,"Список ошибок ЕСС");
 if (out == 0) {
-  qprintf("\n Невозможно создать файл eccerrors.lst\n");
+  printf("\n Невозможно создать файл eccerrors.lst\n");
   return;
 }
 
@@ -78,9 +78,9 @@ mempoke(nand_ecc_cfg,mempeek(nand_ecc_cfg)&0xfffffffe);
 mempoke(nand_cfg1,mempeek(nand_cfg1)&0xfffffffe); 
 
 for(blk=start;blk<(start+len);blk++) {
- qprintf("\r Проверка блока %08x",blk); fflush(stdout);
+ printf("\r Проверка блока %08x",blk); fflush(stdout);
  if (check_block(blk)) {
-     qprintf(" - badblock\n");
+     printf(" - badblock\n");
      continue;
  }
  bch_reset(); 
@@ -94,18 +94,18 @@ for(blk=start;blk<(start+len);blk++) {
     if (stat == 0) continue;
     if ((stat == -1) && (flag == 1)) continue;
     if (stat == -1) { 
-      qprintf("\r!  Блок %x  Страница %d  сектор %d: некорректируемая ошибка чтения\n",blk,pg,sec);
+      printf("\r!  Блок %x  Страница %d  сектор %d: некорректируемая ошибка чтения\n",blk,pg,sec);
       fprintf(out,"\r!  Блок %x  Страница %d  сектор %d: некорректируемая ошибка чтения\n",blk,pg,sec);
     }  
     else {
-      qprintf("\r!  Блок %x  Страница %d  сектор %d: скорректировано бит: %d\n",blk,pg,sec,stat);
+      printf("\r!  Блок %x  Страница %d  сектор %d: скорректировано бит: %d\n",blk,pg,sec,stat);
       fprintf(out,"\r!  Блок %x  Страница %d  сектор %d: скорректировано бит: %d\n",blk,pg,sec,stat);
     }  
     errcount++;
    }
  }
 } 
-qprintf("\r * Всего ошибок: %i\n",errcount);
+printf("\r * Всего ошибок: %i\n",errcount);
 }
  
 
@@ -127,7 +127,7 @@ char devname[50]="";
 while ((opt = getopt(argc, argv, "hp:b:l:dm:k:u:s:e:")) != -1) {
   switch (opt) {
    case 'h': 
-     qprintf("\n Утилита для работы с дефектными блоками flash-накопителя\n\
+     printf("\n Утилита для работы с дефектными блоками flash-накопителя\n\
  Допустимы следующие ключи:\n\n\
 -p <tty> - последовательный порт для общения с загрузчиком\n\
 -k # - код чипсета (-kl - получить список кодов)\n\
@@ -176,7 +176,7 @@ while ((opt = getopt(argc, argv, "hp:b:l:dm:k:u:s:e:")) != -1) {
    case 'e':
      sscanf(optarg,"%i",&eflag);
      if ((eflag != 0) && (eflag != 1)) {
-       qprintf("\n Неправильное значение ключа -e\n");
+       printf("\n Неправильное значение ключа -e\n");
        return;
      }  
      break;
@@ -187,14 +187,14 @@ while ((opt = getopt(argc, argv, "hp:b:l:dm:k:u:s:e:")) != -1) {
   }
 }  
 if ((eflag != -1) && (dflag != 0)) {
-  qprintf("\n Ключи -e и -d несовместимы\n");
+  printf("\n Ключи -e и -d несовместимы\n");
   return;
 }  
 
 #ifdef WIN32
 if (*devname == '\0')
 {
-   qprintf("\n - Последовательный порт не задан\n"); 
+   printf("\n - Последовательный порт не задан\n"); 
    return; 
 }
 #endif
@@ -202,9 +202,9 @@ if (*devname == '\0')
 
 if (!open_port(devname))  {
 #ifndef WIN32
-   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
+   printf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
    return; 
 }
@@ -243,9 +243,9 @@ if (eflag != -1) {
 //###################################################
 if (mflag) {
   if (mark_bad(mflag)) {
-   qprintf("\n Блок %x отмечен как дефектный\n",mflag);
+   printf("\n Блок %x отмечен как дефектный\n",mflag);
   }
-  else qprintf("\n Блок %x уже является дефектным\n",mflag);	
+  else printf("\n Блок %x уже является дефектным\n",mflag);	
   return;
 }
 
@@ -254,9 +254,9 @@ if (mflag) {
 //###################################################
 if (uflag) {
   if (unmark_bad(uflag)) {
-     qprintf("\n Маркер блока %x удален\n",uflag);
+     printf("\n Маркер блока %x удален\n",uflag);
   }
-  else qprintf("\n Блок %x не является дефектным\n",uflag);
+  else printf("\n Блок %x не является дефектным\n",uflag);
   return;
 }
 }

@@ -110,7 +110,7 @@ if (prefixflag) { // вставляем префикс, если надо
 	outcmdbuf[0]=0x7e; 
 	outlen+=1;
 } 
-if (qwrite(siofd,outcmdbuf,outlen) == 0) {   qprintf("\n Ошибка записи команды");return 0;  }
+if (qwrite(siofd,outcmdbuf,outlen) == 0) {   printf("\n Ошибка записи команды");return 0;  }
 #ifndef WIN32
 tcdrain(siofd);  // ждем окончания вывода блока
 #else
@@ -134,11 +134,11 @@ unsigned char replybuf[14000];
 
 incount=0;
 if (qread(siofd,&c,1) != 1) {
-//  qprintf("\n Нет ответа от модема");
+//  printf("\n Нет ответа от модема");
   return 0; // модем не ответил или ответил неправильно
 }
 //if (c != 0x7e) {
-//  qprintf("\n Первый байт ответа - не 7e: %02x",c);
+//  printf("\n Первый байт ответа - не 7e: %02x",c);
 //  return 0; // модем не ответил или ответил неправильно
 //}
 replybuf[incount++]=c;
@@ -147,19 +147,19 @@ replybuf[incount++]=c;
 if (masslen != 0) {
  res=qread(siofd,replybuf+1,masslen-1);
  if (res != (masslen-1)) {
-//   qprintf("\nСлишком короткий ответ от модема: %i байт, ожидалось %i байт\n",res+1,masslen);
+//   printf("\nСлишком короткий ответ от модема: %i байт, ожидалось %i байт\n",res+1,masslen);
 //   dump(replybuf,res+1,0);
    return 0;
  }  
  incount+=masslen-1; // у нас в буфере уже есть masslen байт
-// qprintf("\n ------ it mass --------");
+// printf("\n ------ it mass --------");
 // dump(replybuf,incount,0);
 }
 
 // принимаем оставшийся хвост буфера
 while (qread(siofd,&c,1) == 1)  {
  replybuf[incount++]=c;
-// qprintf("\n-- %02x",c);
+// printf("\n-- %02x",c);
  if (c == 0x7e) break;
 }
 
@@ -367,7 +367,7 @@ void reopen_port() {
 close_port();
 usleep(1000);
 if (!open_port(pdev)) {
-  qprintf("\n Ошибка открытия порта %s",pdev);
+  printf("\n Ошибка открытия порта %s",pdev);
   exit(1);
 } 
 }
@@ -409,7 +409,7 @@ char iobuf[2048];
 int iolen,i;
   
 if (len == 0) return;
-qprintf("\n! %s вернул ошибку: ",descr);  
+printf("\n! %s вернул ошибку: ",descr);  
 if (pktbuf[1] == 0x0e) {
   // текстовый отлуп - печатаем его
   pktbuf[len-4]=0;
@@ -417,7 +417,7 @@ if (pktbuf[1] == 0x0e) {
   iolen=receive_reply(iobuf,0);
   if (iolen != 0) {
       i=*((unsigned int*)&iobuf[2]);
-      qprintf("Код ошибки = %08x\n\n",i);
+      printf("Код ошибки = %08x\n\n",i);
   }
 }
 else {

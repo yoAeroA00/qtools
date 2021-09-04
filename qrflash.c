@@ -79,7 +79,7 @@ for(pg=0;pg<ppb;pg++) {
    nandwait();
    status=check_ecc_status();
    if (status != 0) {
-//     qprintf("\n--- blk %x  pg %i  sec  %i err %i---\n",blk,pg,sec,check_ecc_status());
+//     printf("\n--- blk %x  pg %i  sec  %i err %i---\n",blk,pg,sec,check_ecc_status());
      errlist[errcount].page=pg;
      errlist[errcount].sector=sec;
      errlist[errcount].errcode=status;
@@ -131,7 +131,7 @@ for(page=0;page<ppb;page++)  {
   // по секторам  
   for(sec=0;sec<spp;sec++) {
    udoffset=pgoffset+sec*(sectorsize+4); // смещение до текущего сектора 
-//   qprintf("\n page %i  sector %i\n",page,sec);
+//   printf("\n page %i  sector %i\n",page,sec);
    if (sec != (spp-1)) {
      // Для непоследних секторов
      fwrite(udoffset,1,sectorsize+4,out);    // Тело сектора + 4 байта OBB
@@ -148,7 +148,7 @@ for(page=0;page<ppb;page++)  {
   if (yaffsmode) {
     memset(extbuf,0xff,oobsize);
     memcpy(extbuf,pgoffset+(sectorsize+4)*(spp-1)+(sectorsize-4*(spp-1)),16);
-//    qprintf("\n page %i oob\n",page);
+//    printf("\n page %i oob\n",page);
 //    dump(pgoffset+(sectorsize+4)*(spp-1)+(sectorsize-4*(spp-1)),16,pgoffset+(sectorsize+4)*(spp-1)+(sectorsize-4*(spp-1))-blockbuf);
     fwrite(extbuf,1,oobsize,out);
   }  
@@ -181,12 +181,12 @@ int i;
   
 if (qflag || (errcount == 0)) return; // ошибок не было  
 for (i=0;i<errcount;i++) {
-  if (errlist[i].errcode == -1) qprintf("\n!   Страница %d  сектор %d: некорректируемая ошибка чтения",
+  if (errlist[i].errcode == -1) printf("\n!   Страница %d  сектор %d: некорректируемая ошибка чтения",
                                    errlist[i].page,errlist[i].sector);
-  else                          qprintf("\n!   Страница %d  сектор %d: скорректировано бит: %d",
+  else                          printf("\n!   Страница %d  сектор %d: скорректировано бит: %d",
                                    errlist[i].page,errlist[i].sector,errlist[i].errcode);
 }
-qprintf("\n");
+printf("\n");
 }
 
 //*****************************
@@ -197,12 +197,12 @@ void read_raw(int start,int len,int cwsize,FILE* out, unsigned int rflag) {
 int block;  
 unsigned int badflag;
 
-qprintf("\n Чтение блоков %08x - %08x",start,start+len-1);
-qprintf("\n Формат данных: %u+%i\n",sectorsize,cwsize-sectorsize);
+printf("\n Чтение блоков %08x - %08x",start,start+len-1);
+printf("\n Формат данных: %u+%i\n",sectorsize,cwsize-sectorsize);
 // главыный цикл
 // по блокам
 for (block=start;block<(start+len);block++) {
-  qprintf("\r Блок: %08x",block); fflush(stdout);
+  printf("\r Блок: %08x",block); fflush(stdout);
   switch (rflag) {
     case RF_AUTO:
     case RF_STANDART:
@@ -218,9 +218,9 @@ for (block=start;block<(start+len);block++) {
        break;
   }  
   show_errlist(); 
-  if (badflag != 0) qprintf(" - Badblock\n");   
+  if (badflag != 0) printf(" - Badblock\n");   
 } 
-qprintf("\n"); 
+printf("\n"); 
 }
 
 
@@ -260,7 +260,7 @@ while ((opt = getopt(argc, argv, "hp:b:l:o:xs:ef:mtk:r:z:u:q")) != -1) {
   switch (opt) {
    case 'h': 
      
-qprintf("\n Утилита предназначена для чтения образа флеш-памяти через модифицированный загрузчик\n\
+printf("\n Утилита предназначена для чтения образа флеш-памяти через модифицированный загрузчик\n\
  Допустимы следующие ключи:\n\n\
 -p <tty> - последовательный порт для общения с загрузчиком\n\
 -e - отключить коррекцию ECC при чтении\n\
@@ -273,7 +273,7 @@ qprintf("\n Утилита предназначена для чтения обр
    -us - пропустить дефектные блоки при чтении\n\
    -ui - игнорировать маркер дефектного блока (читать как читается)\n\
    -ux - отключить аппаратный контроль дефекных блоков\n");
-qprintf("\n * Для режима неформатированного чтения и проверки дефектных блоков:\n\
+printf("\n * Для режима неформатированного чтения и проверки дефектных блоков:\n\
 -b <blk> - начальный номер читаемого блока (по умолчанию 0)\n\
 -l <num> - число читаемых блоков, 0 - до конца флешки\n\
 -o <file> - имя выходного файла (по умолчанию qflash.bin)(только для режима чтения)\n\n\
@@ -323,7 +323,7 @@ qprintf("\n * Для режима неформатированного чтен�
 
    case 'u':
      if (bad_processing_flag != BAD_UNDEF) {
-       qprintf("\n Дублированный ключ u - ошибка\n");
+       printf("\n Дублированный ключ u - ошибка\n");
        return;
      }  
      switch(*optarg) {
@@ -340,7 +340,7 @@ qprintf("\n * Для режима неформатированного чтен�
 	 bad_processing_flag=BAD_DISABLE;
 	 break;
        default:
-	 qprintf("\n Недопустимое значение ключа u\n");
+	 printf("\n Недопустимое значение ключа u\n");
 	 return;
      } 
      break;
@@ -361,7 +361,7 @@ qprintf("\n * Для режима неформатированного чтен�
          rflag=RF_YAFFS;
          break;	 
        default:
-	 qprintf("\n Недопустимое значение ключа r\n");
+	 printf("\n Недопустимое значение ключа r\n");
 	 return;
      } 
      break;
@@ -409,7 +409,7 @@ qprintf("\n * Для режима неформатированного чтен�
 
 // Проверяем на запуск без ключей
 if ((start == 0) && (len == 0) && !xflag && !partflag) {
-  qprintf("\n Не указан ни один ключ режима работы\n");
+  printf("\n Не указан ни один ключ режима работы\n");
   return;
 }  
 
@@ -420,7 +420,7 @@ if (bad_processing_flag==BAD_UNDEF) {
 }  
 
 if ((truncflag == 1)&&(xflag == 1)) {
-  qprintf("\nКлючи -t и -x несовместимы\n");
+  printf("\nКлючи -t и -x несовместимы\n");
   return;
 }  
 
@@ -432,16 +432,16 @@ if (! (listmode && ptable_file[0] != '@')) {
 
 #ifdef WIN32
  if (*devname == '\0') {
-   qprintf("\n - Последовательный порт не задан\n"); 
+   printf("\n - Последовательный порт не задан\n"); 
    return; 
  }
 #endif
 
  if (!open_port(devname))  {
 #ifndef WIN32
-   qprintf("\n - Последовательный порт %s не открывается\n", devname); 
+   printf("\n - Последовательный порт %s не открывается\n", devname); 
 #else
-   qprintf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
 #endif
    return; 
  }
@@ -451,7 +451,7 @@ hello(0);
 blockbuf=(unsigned char*)malloc(300000);
 
 if (forced_oobsize != -1) {
-  qprintf("\n! Используется размер OOB %d вместо %d\n",forced_oobsize,oobsize);
+  printf("\n! Используется размер OOB %d вместо %d\n",forced_oobsize,oobsize);
   oobsize=forced_oobsize;
 }  
 
@@ -495,7 +495,7 @@ if (len == 0) len=maxblock-start; //  до конца флешки
   } 
   out=fopen(filename,"wb");
   if (out == 0) {
-    qprintf("\n Ошибка открытия выходного файла %s",filename);
+    printf("\n Ошибка открытия выходного файла %s",filename);
     return;
   }  
   read_raw(start,len,cwsize,out,rflag);
@@ -510,13 +510,13 @@ if (len == 0) len=maxblock-start; //  до конца флешки
 
 // загружаем таблицу разделов
 if (!load_ptable(ptable_file)) { 
-    qprintf("\n Таблица разделов не найдена. Завершаем работу.\n");
+    printf("\n Таблица разделов не найдена. Завершаем работу.\n");
     return;
 }
 
 // проверяем, загрузилась ли таблица
 if (!validpart) {
-   qprintf("\nТаблица разделов не найдена или повреждена\n");
+   printf("\nТаблица разделов не найдена или повреждена\n");
    return;
 }
 
@@ -527,7 +527,7 @@ if (listmode) {
 }  
 
 if ((partnumber != -1) && (partnumber>=fptable.numparts)) {
-  qprintf("\nНедопустимый номер раздела: %i, всего разделов %u\n",partnumber,fptable.numparts);
+  printf("\nНедопустимый номер раздела: %i, всего разделов %u\n",partnumber,fptable.numparts);
   return;
 }  
 
@@ -551,12 +551,12 @@ for(i=0;i<fptable.numparts;i++) {
   // открываем выходной файл
   out=fopen(filename,"wb");  
   if (out == 0) {
-	  qprintf("\n Ошибка открытия выходного файла %s\n",filename);
+	  printf("\n Ошибка открытия выходного файла %s\n",filename);
 	  return;
   }
   // Цикл по блокам раздела
   for(block=part_start(i); block < (part_start(i)+part_len(i)); block++) {
-          qprintf("\r * R: блок %06x [start+%03x] (%i%%)",block,block-part_start(i),(block-part_start(i)+1)*100/part_len(i)); 
+          printf("\r * R: блок %06x [start+%03x] (%i%%)",block,block-part_start(i),(block-part_start(i)+1)*100/part_len(i)); 
 	  fflush(stdout);
 	  
     //	  Собственно чтение блока
@@ -585,11 +585,11 @@ for(i=0;i<fptable.numparts;i++) {
   // выводим список найденных ошибок
   show_errlist(); 
   if (badflag != 0) {
-      qprintf(" - дефектный блок");
-      if (bad_processing_flag == BAD_SKIP) qprintf (", пропускаем");
-      if (bad_processing_flag == BAD_IGNORE) qprintf (", читаем как есть");
-      if (bad_processing_flag == BAD_FILL) qprintf (", отмечаем в выходном файле");
-      qprintf("\n");
+      printf(" - дефектный блок");
+      if (bad_processing_flag == BAD_SKIP) printf (", пропускаем");
+      if (bad_processing_flag == BAD_IGNORE) printf (", читаем как есть");
+      if (bad_processing_flag == BAD_FILL) printf (", отмечаем в выходном файле");
+      printf("\n");
   }  
 }    // конец цикла по блокам
 
@@ -618,6 +618,6 @@ for(i=0;i<fptable.numparts;i++) {
 mempoke(nand_ecc_cfg,mempeek(nand_ecc_cfg)&0xfffffffe); // ECC on BCH
 mempoke(nand_cfg1,mempeek(nand_cfg1)&0xfffffffe); // ECC on R-S
 
-qprintf("\n"); 
+printf("\n"); 
     
 } 
