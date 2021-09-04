@@ -24,16 +24,15 @@ typedef uint16_t uint16;
     #include <stdlib.h>
     #include <sys/types.h>
     #include <sys/stat.h>
+    #include <getopt.h>
 
     #ifdef WIN32
-        #include "getopt.h"
         #ifndef NO_IO
             #include <io.h>
         #endif
         #include <windows.h>
         #define usleep(n) Sleep(n/1000)
     #else
-        #include <getopt.h>
         #include <termios.h>
         #include <unistd.h>
         #include <readline/readline.h>
