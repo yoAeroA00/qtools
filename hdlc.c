@@ -126,64 +126,51 @@ return 1;
 //******************************************************************************************
 
 unsigned int receive_reply(char* iobuf, int masslen) {
-  
-int i, iolen, escflag, incount;
-unsigned char c;
-unsigned int res;
-unsigned char replybuf[14000];
 
-incount=0;
-if (qread(siofd,&c,1) != 1) {
-//  printf("\n Нет ответа от модема");
-  return 0; // модем не ответил или ответил неправильно
-}
-//if (c != 0x7e) {
-//  printf("\n Первый байт ответа - не 7e: %02x",c);
-//  return 0; // модем не ответил или ответил неправильно
-//}
-replybuf[incount++]=c;
+  int i, iolen = 0, incount = 0;
+  unsigned char c;
+  unsigned int res;
+  unsigned char replybuf[14000];
 
-// чтение массива данных единым блоком при обработке команды 03
-if (masslen != 0) {
- res=qread(siofd,replybuf+1,masslen-1);
- if (res != (masslen-1)) {
-//   printf("\nСлишком короткий ответ от модема: %i байт, ожидалось %i байт\n",res+1,masslen);
-//   dump(replybuf,res+1,0);
-   return 0;
- }  
- incount+=masslen-1; // у нас в буфере уже есть masslen байт
-// printf("\n ------ it mass --------");
-// dump(replybuf,incount,0);
-}
-
-// принимаем оставшийся хвост буфера
-while (qread(siofd,&c,1) == 1)  {
- replybuf[incount++]=c;
-// printf("\n-- %02x",c);
- if (c == 0x7e) break;
-}
-
-// Преобразование принятого буфера для удаления ESC-знаков
-escflag=0;
-iolen=0;
-for (i=0;i<incount;i++) { 
-  c=replybuf[i];
-  if ((c == 0x7e)&&(iolen != 0)) {
-    iobuf[iolen++]=0x7e;
-    break;
-  }  
-  if (c == 0x7d) {
-    escflag=1;
-    continue;
+  if (masslen != 0) {
+    // чтение массива данных единым блоком при обработке команды 03
+    res = qread(siofd, replybuf, masslen);
+    if (res > 0)
+      incount+=res;
+    else {
+      printf("\n Нет ответа от модема");
+      return 0;
+    }
+  } else {
+   // чтение посимвольно
+   if (qread(siofd, &c, 1) != 1) {
+     printf("\n Нет ответа от модема");
+     return 0; // модем не ответил или ответил неправильно
+   }
+   else
+     replybuf[incount++]=c;
   }
-  if (escflag == 1) { 
-    c|=0x20;
-    escflag=0;
-  }  
-  iobuf[iolen++]=c;
-}  
-return iolen;
 
+  // принимаем оставшийся хвост буфера
+  while (qread(siofd, &c, 1) == 1) {
+    replybuf[incount++]=c;
+    if (c == 0x7e) break;
+  }
+
+  // Преобразование принятого буфера для удаления ESC-знаков
+  for (i = 0; i < incount; i++) {
+    c = replybuf[i];
+    if ((c == 0x7e)&&(iolen != 0)) {
+      iobuf[iolen++]=0x7e;
+      break;
+    }
+    if (c == 0x7d) {
+      c = replybuf[i+1] ^ 0x20;
+      i++;
+    }
+    iobuf[iolen++]=c;
+  }
+  return iolen;
 }
 
 
@@ -309,8 +296,8 @@ sioparm.c_cflag = B115200 | CS8 | CLOCAL | CREAD ;
 sioparm.c_iflag = 0;  // INPCK;
 sioparm.c_oflag = 0;
 sioparm.c_lflag = 0;
-sioparm.c_cc[VTIME]=30; // timeout  
-sioparm.c_cc[VMIN]=0;  
+sioparm.c_cc[VTIME]=30; // timeout
+sioparm.c_cc[VMIN]=1;
 tcsetattr(siofd, TCSANOW, &sioparm);
 return 1;
 
@@ -385,7 +372,7 @@ sioparm.c_iflag = 0;  // INPCK;
 sioparm.c_oflag = 0;
 sioparm.c_lflag = 0;
 sioparm.c_cc[VTIME]=timeout; // timeout  
-sioparm.c_cc[VMIN]=0;  
+sioparm.c_cc[VMIN]=1;  
 tcsetattr(siofd, TCSANOW, &sioparm);
 #else
 ct.ReadIntervalTimeout=10;
