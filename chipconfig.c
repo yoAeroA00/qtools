@@ -6,7 +6,7 @@
 // Глбальные переменные - собираем их здесь
 
 // тип чипcета:
-int chip_type=0; // индекс текущего чипсета в таблице чипсетов 
+int chip_type=-1; // индекс текущего чипсета в таблице чипсетов 
 int maxchip=-1;   // число чипсетов в конфиге
 
 // описатели чипсетов
@@ -279,39 +279,37 @@ set_chipset(c);
 //****************************************************************
 //*   Установка параметров контрллера по типу чипсета
 //****************************************************************
-void set_chipset(unsigned int c) {
+void set_chipset(unsigned int c)
+{
+    if(maxchip == -1 && !load_config())
+        exit(0); // конфиг не загрузился
 
+    // получаем размер массива чипсетов
+    for(int i = 0; i < maxchip ;i++)
+        // проверяем наш номер
+        if(chipset[i].id == c)
+            chip_type = i;
 
-int i;
-chip_type=-1;  
+    if (chip_type < 0)
+    {
+        printf("\n - Неверный код чипсета - %d\n", c);
+        exit(1);
+    }
 
-if (maxchip == -1) 
-  if (!load_config()) exit(0); // конфиг не загрузился
-
-// получаем размер массива чипсетов
-for(i=0;i<maxchip ;i++) 
-
-// проверяем наш номер
-  if (chipset[i].id == c) chip_type=i;
-
-if (chip_type == -1) {
-  printf("\n - Неверный код чипсета - %d\n", c);
-  exit(1);
-}
-// устанавливаем адреса регистров чипсета
-#define setnandreg(name) name=chipset[chip_type].nandbase+nandreg[chipset[chip_type].ctrl_type].name;
-setnandreg(nand_cmd)
-setnandreg(nand_addr0)
-setnandreg(nand_addr1)
-setnandreg(nand_cs)   
-setnandreg(nand_exec)
-setnandreg(nand_status)
-setnandreg(nand_buffer_status)
-setnandreg(nand_cfg0)  
-setnandreg(nand_cfg1)  
-setnandreg(nand_ecc_cfg)
-setnandreg(NAND_FLASH_READ_ID)
-setnandreg(sector_buf)
+    // устанавливаем адреса регистров чипсета
+    #define setnandreg(name) name = chipset[chip_type].nandbase + nandreg[chipset[chip_type].ctrl_type].name;
+    setnandreg(nand_cmd)
+    setnandreg(nand_addr0)
+    setnandreg(nand_addr1)
+    setnandreg(nand_cs)
+    setnandreg(nand_exec)
+    setnandreg(nand_status)
+    setnandreg(nand_buffer_status)
+    setnandreg(nand_cfg0)
+    setnandreg(nand_cfg1)
+    setnandreg(nand_ecc_cfg)
+    setnandreg(NAND_FLASH_READ_ID)
+    setnandreg(sector_buf)
 }
 
 //**************************************************************

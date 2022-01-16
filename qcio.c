@@ -571,18 +571,18 @@ return iobuf[2];
 //* Возвращает 0, если команда 11 не поддерживается
 //* и устанавливает глобальную переменную bad_loader=1
 //*******************************************************
-int test_loader() {
-
-int i;
-
-i=identify_chipset();
-//printf("\n ident = %i\n",i);
-if (i<=0) {
-  bad_loader=1;
-  return 0;
-}
-if (chip_type == 0) set_chipset(i); // если чипсет не был явно задан
-return 1;
+int test_loader()
+{
+    int i = identify_chipset();
+    //printf("\n ident = %i\n",i);
+    if( i <= 0)
+    {
+        bad_loader = 1;
+        return 0;
+    }
+    if(chip_type < 0)
+        set_chipset(i); // если чипсет не был явно задан
+    return 1;
 }
 
 //****************************************************************

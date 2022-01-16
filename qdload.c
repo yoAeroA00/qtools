@@ -168,7 +168,8 @@ unlink("ptable/current-w.bin");
 
 
 // Если чипсет уже определен ключами - определяемся с сахара-режимом
-if (chip_type != 0) sahara_flag=get_sahara();
+if(chip_type >= 0)
+    sahara_flag = get_sahara();
 
 if (!sahara_flag) {
  // открываем входной файл
@@ -189,18 +190,18 @@ if (!sahara_flag) {
    fread(&iaddr,4,1,in);
    ident_flag=1;
    if (start == 0) start=iaddr;
-   if (chip_type == 0) set_chipset(ichipset);  // меняем тип чипсета на определенный из блока идентификации
+   if (chip_type < 0) set_chipset(ichipset);  // меняем тип чипсета на определенный из блока идентификации
  }
  rewind(in);
 } 
 
 // проверяем тип чипсета
-if ((chip_type == 0)&&(helloflag==1)) {
+if ((chip_type < 0) && (helloflag==1)) {
   printf("\n Не указан тип чипсета - полная инициализация невозможна\n");
   helloflag=2;
 }  
 
-if ((helloflag == 0)&& (chip_type != 0))  printf("\n Чипсет: %s",get_chipname());
+if ((helloflag == 0)&& (chip_type >= 0))  printf("\n Чипсет: %s",get_chipname());
 
 //printf("\n chip_type = %i   sahara = %i",chip_type,sahara_flag);
 
