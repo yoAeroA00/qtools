@@ -47,4 +47,5 @@ typedef uint16_t uint16;
     #endif
     #include "qcio.h"
     #include "ptable.h"
+    #include "utils.h"
 #endif

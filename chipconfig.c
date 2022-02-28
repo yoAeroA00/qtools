@@ -81,7 +81,6 @@ unsigned int nc_stop,nc_read,nc_readall,nc_program,nc_programall,nc_erase,nc_ide
 //*   Загрузка конфига чипсетов
 //************************************************
 int load_config() {
-  
 char line[300];
 char* tok1, *tok2;
 int index;
@@ -90,7 +89,7 @@ int msmidcount;
 char vname[50];
 char vval[100];
 
-FILE* in=fopen("chipset.cfg","r");  
+FILE *in = qopenfile("chipset.cfg", "r");
 if (in == 0) {
   printf("\n! Файл конфигурации чипсетов chipset.cfg не найден\n");
   return 0;  // конфиг не найден

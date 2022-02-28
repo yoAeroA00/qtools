@@ -58,7 +58,7 @@ switch (imgid) {
 	return 1;
 }
 printf("\n Загружаем %s...\n",infilename); fflush(stdout);
-in=fopen(infilename,"rb");
+in = qopenfile(infilename, "rb");
 if (in == 0) {
   printf("\n Ошибка открытия входного файла %s\n",infilename);
   return 1;
