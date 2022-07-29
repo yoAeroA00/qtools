@@ -3,7 +3,7 @@
 @
 .syntax unified
 
-pkt_data_len_off=8
+pkt_data_len_off=N
 
 .ORG    0xXXXXXXXX
 
@@ -25,7 +25,7 @@ cmd_11_exec:
 @ блок идентификации
 
         .word           0xdeadbeef          @ сигнатура
-        .byte           X                   @ код чипсета
+        .byte           N                   @ код чипсета
 
 .ORG    0xXXXXXXXX
 
