@@ -1,13 +1,13 @@
 #! /bin/sh
 #
-# EFS-Plugin for Midnight Commander
+# EFS Plugin for Midnight Commander
 #
-# Here you need to enter the path and name of the QEFS program, as well as, if necessary, the key -p to specify a particular port
+# You need to specify the path and name of the qefs program here, as well as, if necessary, the -p flag to specify a specific port
 #
 qefs="/usr/share/qtools/qefs -p0"
 
 #***********************************
-# Getting a list of files
+# Get the list of files
 #***********************************
 
 efs_list() {
@@ -15,35 +15,35 @@ $qefs -lm $1
 }
 
 #***********************************
-# Retrieving Files
+# Extract files
 #***********************************
 efs_copyout() {
 $qefs -gf $2 $3
 }
 
 #***********************************
-# Writing files
+# Write files
 #***********************************
 efs_copyin() {
 $qefs -wf $3 $2
 }
 
 #***********************************
-# Deleting files
+# Remove files
 #***********************************
 efs_rm() {
 $qefs -ef $2
 }
 
 #***********************************
-# Creating a Folder
+# Create a directory
 #***********************************
 efs_mkdir() {
 $qefs -md $2 rwx
 }
 
 #***********************************
-# Deleting a Folder
+# Remove a directory
 #***********************************
 efs_rmdir() {
 $qefs -ed $2 
