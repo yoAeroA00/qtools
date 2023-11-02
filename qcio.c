@@ -1,83 +1,79 @@
-// //
-//  Драйверы для работы с Flash модема через обращения к NAND-контроллеру и процедурам загрузчика
+//
+//  Drivers for interacting with a Flash modem through NAND controller access and bootloader procedures
 //
 #include "include.h"
 
-// Глбальные переменные - собираем их здесь
+// Global variables - we collect them here
 
-unsigned int nand_cmd=0x1b400000;
-unsigned int spp=0;
-unsigned int pagesize=0;
-unsigned int sectorsize=512;
-unsigned int maxblock=0;     // Общее число блоков флешки
-char flash_mfr[30]={0};
-char flash_descr[30]={0};
-unsigned int oobsize=0;
-unsigned int bad_loader=0;
-unsigned int flash16bit=0; // 0 - 8-битная флешка, 1 - 16-битная
+unsigned int nand_cmd = 0x1b400000;
+unsigned int spp = 0;
+unsigned int pagesize = 0;
+unsigned int sectorsize = 512;
+unsigned int maxblock = 0;     // Total number of flash blocks
+char flash_mfr[30] = {0};
+char flash_descr[30] = {0};
+unsigned int oobsize = 0;
+unsigned int bad_loader = 0;
+unsigned int flash16bit = 0; // 0 - 8-bit flash, 1 - 16-bit flash
 
-unsigned int badsector;    // сектор, содержащий дефектный блок
-unsigned int badflag;      // маркер дефектного блока
-unsigned int badposition;  // позиция маркера дефектных блоков
-unsigned int badplace;     // местоположение маркера: 0-user, 1-spare
-int bch_mode=0;            // режим ЕСС: 0=R-S  1=BCH
-int ecc_size;              // размер ЕСС
-int ecc_bit;               // число бит, корректируемых ECC
+unsigned int badsector;    // sector containing a defective block
+unsigned int badflag;      // marker for a defective block
+unsigned int badposition;  // position of the defective block marker
+unsigned int badplace;     // location of the marker: 0-user, 1-spare
+int bch_mode = 0;            // ECC mode: 0=R-S  1=BCH
+int ecc_size;              // ECC size
+int ecc_bit;               // Number of bits corrected by ECC
 
 //****************************************************************
-//* Ожидание завершения операции, выполняемой контроллером nand  *
+//* Wait for the completion of an operation performed by the NAND controller
 //****************************************************************
 void nandwait() { 
    if (get_controller() == 0) 
-     while ((mempeek(nand_status)&0xf) != 0);  // MDM
+     while ((mempeek(nand_status) & 0xf) != 0);  // MDM
    else
-     while ((mempeek(nand_status)&0x3) != 0);  // MSM
+     while ((mempeek(nand_status) & 0x3) != 0);  // MSM
 }
 
-
-
 //*************************************88
-//* Установка адресных регистров 
+//* Set address registers 
 //*************************************
 void setaddr(int block, int page) {
 
 int adr;  
   
-adr=block*ppb+page;  // # страницы от начала флешки
+adr = block * ppb + page;  // Page number from the beginning of the flash
 
 if (get_controller() == 0) {
   // MDM
-  mempoke(nand_addr0,adr<<16);         // младшая часть адреса. 16 бит column address равны 0
-  mempoke(nand_addr1,(adr>>16)&0xff);  // единственный байт старшей части адреса
+  mempoke(nand_addr0, adr << 16);         // Lower part of the address. 16 bits column address is set to 0
+  mempoke(nand_addr1, (adr >> 16) & 0xff);  // Only the high byte of the address
 }  
 else {
   // MSM
-  mempoke(nand_addr0,adr<<8);
+  mempoke(nand_addr0, adr << 8);
 }
 }
 
 //***************************************************************
-//* Запуск на выполнение команды контроллера NAND с ожиданием
+//* Start executing a NAND controller command with waiting
 //***************************************************************
 void exec_nand(int cmd) {
 
 if (get_controller() == 0) {
   // MDM  
-  mempoke(nand_cmd,cmd); // Сброс всех операций контроллера
-  mempoke(nand_exec,0x1);
+  mempoke(nand_cmd, cmd); // Reset all controller operations
+  mempoke(nand_exec, 0x1);
   nandwait();
 }
 else {
   // MSM
-  mempoke(nand_cmd,cmd); // Сброс всех операций контроллера
+  mempoke(nand_cmd, cmd); // Reset all controller operations
   nandwait();
 }
 }
 
-
-
 //*********************************************
-//* Сброс контроллера NAND
+//* Reset NAND controller
 //*********************************************
 void nand_reset() {
 
@@ -85,7 +81,7 @@ exec_nand(1);
 }
 
 //*********************************************
-//* Чтение сектора флешки по указанному адресу 
+//* Read a sector of the flash at the specified address 
 //*********************************************
 
 int flash_read(int block, int page, int sect) {
@@ -93,21 +89,21 @@ int flash_read(int block, int page, int sect) {
 int i;
 
 nand_reset();
-// адрес
-setaddr(block,page);
+// Address
+setaddr(block, page);
 if (get_controller() == 0) {
-  // MDM - устанавливаем код команды один раз
-  mempoke(nand_cmd,0x34); // чтение data+ecc+spare
-  // цикл чтения сектров до нужного нам
-  for(i=0;i<(sect+1);i++) {
-    mempoke(nand_exec,0x1);
+  // MDM - set the command code once
+  mempoke(nand_cmd, 0x34); // read data+ecc+spare
+  // Read loop to the required sector
+  for(i = 0; i < (sect + 1); i++) {
+    mempoke(nand_exec, 0x1);
     nandwait();
   }  
 }
 else {
-  // MSM - код команды в регистр команд вводится каждый раз
-  for(i=0;i<(sect+1);i++) {
-    mempoke(nand_cmd,0x34); // чтение data+ecc+spare
+  // MSM - the command code is entered into the command register every time
+  for(i = 0; i < (sect + 1); i++) {
+    mempoke(nand_cmd, 0x34); // read data+ecc+spare
     nandwait();
   }  
 }  
@@ -115,95 +111,93 @@ if (test_badblock()) return 0;
 return 1;  
 }
 
-
 //**********************************************8
-//* Процедура активации загрузчика hello
+//* Procedure to activate the hello loader
 //*
-//* mode=0 - автоопределение нужности hello
-//* mode=1 - принудительный запуск hello
-//* mode=2 - принудительный запуск hello без настройки конфигурации 
+//* mode=0 - hello necessity auto-detection
+//* mode=1 - force hello execution
+//* mode=2 - force hello execution without configuring the chipset 
 //**********************************************8
 void hello(int mode) {
 
 int i;  
 unsigned char rbuf[1024];
-char hellocmd[]="\x01QCOM fast download protocol host\x03### ";
+char hellocmd[] = "\x01QCOM fast download protocol host\x03### ";
 
-
-// апплет проверки работоспособности загрузчика
-unsigned char cmdbuf[]={
-  0x11,0x00,0x12,0x00,0xa0,0xe3,0x00,0x00,
-  0xc1,0xe5,0x01,0x40,0xa0,0xe3,0x1e,0xff,
-  0x2f,0xe1
+// Applet for checking the bootloader's operability
+unsigned char cmdbuf[] = {
+  0x11, 0x00, 0x12, 0x00, 0xa0, 0xe3, 0x00, 0x00,
+  0xc1, 0xe5, 0x01, 0x40, 0xa0, 0xe3, 0x1e, 0xff,
+  0x2f, 0xe1
 };
 unsigned int cfg0;
 
-// режим тихой инициализации
+// Silent initialization mode
 if (mode == 0) {
-  i=send_cmd(cmdbuf,sizeof(cmdbuf),rbuf);
+  i = send_cmd(cmdbuf, sizeof(cmdbuf), rbuf);
   ttyflush();
-  i=rbuf[1];
-  // Проверяем, не инициализировался ли загрузчик ранее
+  i = rbuf[1];
+  // Check if the bootloader has been initialized previously
   if (i == 0x12) {
      if (!test_loader()) {
-       printf("\n Используется непатченный загрузчик - продолжение работы невозможно\n");
-        exit(1);
-     }  
-//     printf("\n chipset = %i  base = %i",chip_type,name);
+       printf("\n An unpatched bootloader is being used - continuing is not possible\n");
+       exit(1);
+     }
+	 //printf("\n chipset = %i  base = %i",chip_type,name);
      get_flash_config();
      return;
   }  
-  qread(siofd,rbuf,1024);   // вычищаем хвост буера с сообщением об ошибке
+  qread(siofd, rbuf, 1024);   // Clear the buffer tail with an error message
 }  
 
-i=send_cmd(hellocmd,strlen(hellocmd),rbuf);
+i = send_cmd(hellocmd, strlen(hellocmd), rbuf);
 if (rbuf[1] != 2) {
-   printf(" Отсылка hello...");
-   i=send_cmd(hellocmd,strlen(hellocmd),rbuf);
+   printf(" Sending hello...");
+   i = send_cmd(hellocmd, strlen(hellocmd), rbuf);
    if (rbuf[1] != 2) {
-     printf(" повторный hello возвратил ошибку!\n");
-     dump(rbuf,i,0);
+     printf(" returned an error on re-sending hello!\n");
+     dump(rbuf, i, 0);
      return;
    }  
    printf("ok");
 }  
-i=rbuf[0x2c];
-rbuf[0x2d+i]=0;
+i = rbuf[0x2c];
+rbuf[0x2d + i] = 0;
 if (mode == 2) {
-   // тихий запуск - обходим настройку чипсета
-   printf("Hello ok, флеш-память: %s\n",rbuf+0x2d);
+   // Silent execution - bypass chipset configuration
+   printf("Hello ok, flash memory: %s\n", rbuf + 0x2d);
    return; 
  }  
 ttyflush(); 
 if (!test_loader()) {
-  printf("\n Используется непатченный загрузчик - продолжение работы невозможно\n");
+  printf("\n An unpatched bootloader is being used - continuing is not possible\n");
   exit(1);
 }  
 
-if (get_sahara()) disable_bam(); // отключаем NANDc BAM, если работаем с чипсетами нового поколения
+if (get_sahara()) disable_bam(); // Disable NANDc BAM if working with new-generation chipsets
 
 get_flash_config();
-cfg0=mempeek(nand_cfg0);
-printf("\n Версия HELLO-протокола: %i",rbuf[0x22]); 
-printf("\n Чипсет: %s",get_chipname()); 
-printf("\n Базовый адрес NAND-контроллера: %08x",nand_cmd);
-printf("\n Флеш-память: %s %s, %s",flash_mfr,(rbuf[0x2d] != 0x65)?((char*)(rbuf+0x2d)):"",flash_descr);
-//printf("\n Максимальный размер пакета: %i байта",*((unsigned int*)&rbuf[0x24]));
-printf("\n Размер сектора: %u байт",(cfg0&(0x3ff<<9))>>9);
-printf("\n Размер страницы: %u байт (%u секторов)",pagesize,spp);
-printf("\n Число страниц в блоке: %u",ppb);
-printf("\n Размер OOB: %u байт",oobsize); 
-printf("\n Тип ECC: %s, %i бит",bch_mode?"BCH":"R-S",ecc_bit);
-printf("\n Размер ЕСС: %u байт",ecc_size);
-printf("\n Размер spare: %u байт",(cfg0>>23)&0xf);
-printf("\n Положение маркера дефектных блоков: ");
-printf("%s+%x",badplace?"spare":"user",badposition);
-printf("\n Общий размер флеш-памяти = %u блоков (%i MB)",maxblock,maxblock*ppb/1024*pagesize/1024);
+cfg0 = mempeek(nand_cfg0);
+printf("\n HELLO Protocol Version: %i", rbuf[0x22]); 
+printf("\n Chipset: %s", get_chipname()); 
+printf("\n NAND Controller Base Address: %08x", nand_cmd);
+printf("\n Flash Memory: %s %s, %s", flash_mfr, (rbuf[0x2d] != 0x65) ? ((char*)(rbuf + 0x2d)) : "", flash_descr);
+//printf("\n Maximum Packet Size: %i bytes", *((unsigned int*)&rbuf[0x24]));
+printf("\n Sector Size: %u bytes", (cfg0 & (0x3ff << 9)) >> 9);
+printf("\n Page Size: %u bytes (%u sectors)", pagesize, spp);
+printf("\n Number of Pages per Block: %u", ppb);
+printf("\n OOB Size: %u bytes"); 
+printf("\n ECC Type: %s, %i bits", bch_mode ? "BCH" : "R-S", ecc_bit);
+printf("\n ECC Size: %u bytes", ecc_size);
+printf("\n Spare Size: %u bytes", (cfg0 >> 23) & 0xf);
+printf("\n Defective Block Marker Position: ");
+printf("%s+%x", badplace ? "spare" : "user", badposition);
+printf("\n Total Flash Memory Size = %u blocks (%i MB)", maxblock, maxblock * ppb / 1024 * pagesize / 1024);
 printf("\n");
 }
 
 //**********************************************************
-//*  Получение параметров формата флешки из контроллера
+//* Retrieving NAND Flash Memory Format Parameters from the Controller
 //**********************************************************
 void get_flash_config() {
   
@@ -211,12 +205,12 @@ unsigned int cfg0, cfg1, nandid, pid, fid, blocksize, devcfg, chipsize;
 unsigned int ecccfg;
 int linuxcwsize;
 int i;
-int c_badmark_pos; // вычисляемая позиция маркера
+int c_badmark_pos; // Calculated bad block marker position
 
 struct {
-  char* type;   // тектовое описание типа
-  unsigned int id;      // ID флешки 
-  unsigned int chipsize; // размер флешки в мегабайтах
+  char* type;   // Textual description of the type
+  unsigned int id;      // Flash memory ID
+  unsigned int chipsize; // Flash memory size in megabytes
 } nand_ids[]= {
 
 	{"NAND 16MiB 1,8V 8-bit",	0x33, 16},
@@ -260,7 +254,7 @@ struct {
 	{"NAND 128MiB 3,3V 8-bit",	0xD1,128},
 	{"NAND 128MiB 1,8V 16-bit",	0xB1,128},
 	{"NAND 128MiB 3,3V 16-bit",	0xC1,128},
-	{"NAND 128MiB 1,8V 16-bit",     0xAD,128},
+	{"NAND 128MiB 1,8V 16-bit", 0xAD,128},
 
 	/* 2 Gigabit */
 	{"NAND 256MiB 1.8V 8-bit",	0xAA,256},
@@ -337,40 +331,40 @@ struct  {
 	{0x0, 0}
 };
 
-mempoke(nand_cmd,0x8000b); // команда Extended Fetch ID
+mempoke(nand_cmd,0x8000b); // Extended Fetch ID command
 mempoke(nand_exec,1); 
 nandwait();
-nandid=mempeek(NAND_FLASH_READ_ID); // получаем ID флешки
+nandid=mempeek(NAND_FLASH_READ_ID); // Get the flash memory ID
 chipsize=0;
 
 fid=(nandid>>8)&0xff;
 pid=nandid&0xff;
 
-// Определяем производителя флешки
+// Determine the manufacturer of the flash memory
 i=0;
 while (nand_manuf_ids[i].id != 0) {
-	if (nand_manuf_ids[i].id == pid) {
-	strcpy(flash_mfr,nand_manuf_ids[i].name);
-	break;
-	}
+  if (nand_manuf_ids[i].id == pid) {
+  strcpy(flash_mfr,nand_manuf_ids[i].name);
+  break;
+  }
 i++;
 }  
     
-// Определяем емкость флешки
+// Determine the capacity of the flash memory
 i=0;
 while (nand_ids[i].id != 0) {
 if (nand_ids[i].id == fid) {
-	chipsize=nand_ids[i].chipsize;
-	strcpy(flash_descr,nand_ids[i].type);
-	break;
-	}
+  chipsize=nand_ids[i].chipsize;
+  strcpy(flash_descr,nand_ids[i].type);
+  break;
+  }
 i++;
 }  
 if (chipsize == 0) {
-	printf("\n Неопределенный Flash ID = %02x",fid);
+  printf("\nUndefined Flash ID = %02x",fid);
 }  
 
-// Вынимаем параметры конфигурации
+// Extract configuration parameters
 
 cfg0=mempeek(nand_cfg0);
 cfg1=mempeek(nand_cfg1);
@@ -379,24 +373,24 @@ sectorsize=512;
 //sectorsize=(cfg0&(0x3ff<<9))>>9; //UD_SIZE_BYTES = blocksize
 
 devcfg = (nandid>>24) & 0xff;
-pagesize = 1024 << (devcfg & 0x3); // размер страницы в байтах
-blocksize = 64 << ((devcfg >> 4) & 0x3);  // размер блока в килобайтах
-spp = pagesize/sectorsize; // секторов в странице
+pagesize = 1024 << (devcfg & 0x3); // Page size in bytes
+blocksize = 64 << ((devcfg >> 4) & 0x3);  // Block size in kilobytes
+spp = pagesize/sectorsize; // Sectors per page
 
 if ((((cfg0>>6)&7)|((cfg0>>2)&8)) == 0) {
-  // для старых чипсетов младшие 2 байта CFG0 надо настраивать руками
+  // For older chipsets, the lower 2 bytes of CFG0 need manual configuration
   if (!bad_loader) mempoke(nand_cfg0,(cfg0|0x40000|(((spp-1)&8)<<2)|(((spp-1)&7)<<6)));
 }  
 
-// Определяем тип и размер ЕСС
+// Determine ECC type and size
 if (((cfg1>>27)&1) != 0) bch_mode=1;
 if (bch_mode) { 
-  // для BCH 
+  // For BCH 
   ecc_size=(ecccfg>>8)&0x1f; 
   ecc_bit=((ecccfg>>4)&3) ? (((ecccfg>>4)&3)+1)*4 : 4;
 }
 else {
-  // Для R-S
+  // For R-S
   ecc_size=(cfg0>>19)&0xf;
   ecc_bit=4;
 }  
@@ -407,429 +401,370 @@ badplace=(cfg1>>16)&1;
 linuxcwsize=528;
 if (bch_mode && (ecc_bit == 8)) linuxcwsize=532;
 
-// Настройка бедмаркера, если он не автонастроился
-
+// Configure bad block marker if not auto-configured
 c_badmark_pos = (pagesize-(linuxcwsize*(spp-1))+1);
 if (badposition == 0) {
-  printf("\n! Внимание - положение маркера дефектных блоков автоопределено!\n");  
+  printf("\n! Attention - the position of bad block marker has been auto-configured!\n");  
   badplace=0;
   badposition=c_badmark_pos;
 }  
 if (badposition != c_badmark_pos) {
-  printf("\n! Внимание - текущее положение маркера дефектных блоков %x не совпадает с расчетным %x!\n",
+  printf("\n! Attention - the current bad block marker position %x does not match the calculated position %x!\n",
      badposition,c_badmark_pos);  
 }
 
-// проверяем признак 16-битной флешки
+// Check for the 16-bit flash memory indicator
 if ((cfg1&2) != 0) flash16bit=1;
 if (chipsize != 0)   maxblock=chipsize*1024/blocksize;
 else                 maxblock=0x800;
 
 if (oobsize == 0) {
-	// Micron MT29F4G08ABBEA3W и Toshiba MD5N04G02GSD2ARK:
-	// на самом деле 224, определяется 128, реально 
-	// используется 160, для raw-режима нагляднее 256 :)
-	if ((nandid == 0x2690ac2c) || (nandid == 0x2690ac98)) oobsize = 256; 
-	else oobsize = (8 << ((devcfg >> 2) & 0x1)) * (pagesize >> 9);
-} 
-
+  // Micron MT29F4G08ABBEA3W and Toshiba MD5N04G02GSD2ARK:
+  // actually 224, determined 128, actually 
+  // uses 160, for raw mode, 256 is more intuitive :)
+  if ((nandid == 0x2690ac2c) || (nandid == 0x2690ac98)) oobsize = 256; 
+  else oobsize = (8 << ((devcfg >> 2) & 0x1)) * (pagesize >> 9);
 }
 
-
 //**********************************************
-//* Отключение аппаратного контроля бедблоков
+//* Disable Hardware Bad Block Control
 //**********************************************
 void hardware_bad_off() {
-
-int cfg1;
-
-cfg1=mempeek(nand_cfg1);
-cfg1 &= ~(0x3ff<<6);
-mempoke(nand_cfg1,cfg1);
+  int cfg1;
+  cfg1 = mempeek(nand_cfg1);
+  cfg1 &= ~(0x3ff << 6);
+  mempoke(nand_cfg1, cfg1);
 }
 
 //**********************************************
-//* Включение аппаратного контроля бедблоков
+//* Enable Hardware Bad Block Control
 //**********************************************
 void hardware_bad_on() {
-
-int cfg1;
-
-cfg1=mempeek(nand_cfg1);
-cfg1 &= ~(0x7ff<<6);
-cfg1 |= (badposition &0x3ff)<<6; // смещение до маркера
-cfg1 |= badplace<<16;            // область, где расположен маркер (user/spare)
-mempoke(nand_cfg1,cfg1);
+  int cfg1;
+  cfg1 = mempeek(nand_cfg1);
+  cfg1 &= ~(0x7ff << 6);
+  cfg1 |= (badposition & 0x3ff) << 6; // Offset to the marker
+  cfg1 |= badplace << 16;            // Area where the marker is located (user/spare)
+  mempoke(nand_cfg1, cfg1);
 }
 
 //**********************************************
-//* Установка позиции маркера
+//* Set Bad Block Marker Position
 //**********************************************
-void set_badmark_pos (int pos, int place) {
-
-badposition=pos;
-badplace=place&1;
-hardware_bad_on();
+void set_badmark_pos(int pos, int place) {
+  badposition = pos;
+  badplace = place & 1;
+  hardware_bad_on();
 }
-
 
 //**********************************
-//* Закрытие потока данных раздела
+//* Close the Data Stream of the Partition
 //**********************************
 int qclose(int errmode) {
-unsigned char iobuf[600];
-unsigned char cmdbuf[]={0x15};
-int iolen;
+  unsigned char iobuf[600];
+  unsigned char cmdbuf[] = {0x15};
+  int iolen;
 
-iolen=send_cmd(cmdbuf,1,iobuf);
-if (!errmode) return 1;
-if (iobuf[1] == 0x16) return 1;
-show_errpacket("close()",iobuf,iolen);
-return 0;
-
-}  
+  iolen = send_cmd(cmdbuf, 1, iobuf);
+  if (!errmode) return 1;
+  if (iobuf[1] == 0x16) return 1;
+  show_errpacket("close()", iobuf, iolen);
+  return 0;
+}
 
 //************************
-//* Стирание блока флешки  
+//* Erase a Flash Memory Block
 //************************
-
 void block_erase(int block) {
-  
-int oldcfg;  
-  
-nand_reset();
-mempoke(nand_addr0,block*ppb);         // младшая часть адреса - # страницы
-mempoke(nand_addr1,0);                 // старшая часть адреса - всегда 0
-
-oldcfg=mempeek(nand_cfg0);
-mempoke(nand_cfg0,oldcfg&~(0x1c0));    // устанавливаем CW_PER_PAGE=0, как требует даташит
-
-mempoke(nand_cmd,0x3a); // стирание. Бит Last page установлен
-mempoke(nand_exec,0x1);
-nandwait();
-mempoke(nand_cfg0,oldcfg);   // восстанавливаем CFG0
+  int oldcfg;
+  nand_reset();
+  mempoke(nand_addr0, block * ppb);         // Lower part of the address - # page
+  mempoke(nand_addr1, 0);                 // Upper part of the address - always 0
+  oldcfg = mempeek(nand_cfg0);
+  mempoke(nand_cfg0, oldcfg & ~(0x1c0));    // Set CW_PER_PAGE=0, as required by the datasheet
+  mempoke(nand_cmd, 0x3a); // Erase. Last page bit is set
+  mempoke(nand_exec, 0x1);
+  nandwait();
+  mempoke(nand_cfg0, oldcfg);   // Restore CFG0
 }
 
 //****************************************
-//* Отключение NANDc BAM
+//* Disable NANDc BAM
 //****************************************
 void disable_bam() {
-
-unsigned int i,nandcstate[256],bcraddr=0xfc401a40;
-
-if (is_chipset("MDM9x4x")) bcraddr=0x0183f000;
-for (i=0;i<0xec;i+=4) nandcstate[i]=mempeek(nand_cmd+i); // сохраняем состояние контроллера NAND
-
-mempoke(bcraddr,1); // GCC_QPIC_BCR
-mempoke(bcraddr,0); // полный асинхронный сброс QPIC
-
-for (i=0;i<0xec;i+=4) mempoke(nand_cmd+i,nandcstate[i]);  // восстанавливаем состояние
-mempoke(nand_exec,1); // фиктивное чтение для снятия защиты адресных регистров контроллера от записи
+  unsigned int i, nandcstate[256], bcraddr = 0xfc401a40;
+  if (is_chipset("MDM9x4x")) bcraddr = 0x0183f000;
+  for (i = 0; i < 0xec; i += 4) nandcstate[i] = mempeek(nand_cmd + i); // Save the controller's state
+  mempoke(bcraddr, 1); // GCC_QPIC_BCR
+  mempoke(bcraddr, 0); // Full asynchronous reset of QPIC
+  for (i = 0; i < 0xec; i += 4) mempoke(nand_cmd + i, nandcstate[i]);  // Restore the state
+  mempoke(nand_exec, 1); // Dummy read to release the protection of controller's address registers
 }
 
-
 //****************************************************
-//* Проверка массива на ненулевые значения
+//* Check an Array for Non-Zero Values
 //*
-//*  0 - в массиве одни нули
-//*  1 - в массиве есть ненули
+//*  0 - the array contains only zeros
+//*  1 - the array contains non-zeros
 //****************************************************
 int test_zero(unsigned char* buf, int len) {
-  
-int i;
-for (i=0;i<len;i++)
-  if (buf[i] != 0) return 1;
-return 0;
+  int i;
+  for (i = 0; i < len; i++) {
+    if (buf[i] != 0) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 //***************************************************************
-//* Идентификация чипсета через апплет по сигнатуре загрузчика
+//* Identify the Chipset through the Applet by the Loader Signature
 //*
-//* return -1 - загрузчик не поддерживает команду 11
-//*         0 - в загрузчике не найдена сигнатура идентификации чипсета
-//*         остальное - код чипсета из загрузчика 
+//* Return -1 - the loader does not support command 11
+//*         0 - no chipset identification signature found in the loader
+//*         Others - the chipset code from the loader
 //***************************************************************
 int identify_chipset() {
-
-char cmdbuf[]={ 
-  0x11,0x00,0x04,0x10,0x2d,0xe5,0x0e,0x00,0xa0,0xe1,0x03,0x00,0xc0,0xe3,0xff,0x30,
-  0x80,0xe2,0x34,0x10,0x9f,0xe5,0x04,0x20,0x90,0xe4,0x01,0x00,0x52,0xe1,0x03,0x00,
-  0x00,0x0a,0x03,0x00,0x50,0xe1,0xfa,0xff,0xff,0x3a,0x00,0x00,0xa0,0xe3,0x00,0x00,
-  0x00,0xea,0x00,0x00,0x90,0xe5,0x04,0x10,0x9d,0xe4,0x01,0x00,0xc1,0xe5,0xaa,0x00,
-  0xa0,0xe3,0x00,0x00,0xc1,0xe5,0x02,0x40,0xa0,0xe3,0x1e,0xff,0x2f,0xe1,0xef,0xbe,
-  0xad,0xde
-};
-unsigned char iobuf[1024];
-send_cmd(cmdbuf,sizeof(cmdbuf),iobuf);
-if (iobuf[1] != 0xaa) return -1;
-return iobuf[2];
+  char cmdbuf[] = {
+    0x11, 0x00, 0x04, 0x10, 0x2d, 0xe5, 0x0e, 0x00, 0xa0, 0xe1, 0x03, 0x00, 0xc0, 0xe3, 0xff, 0x30,
+    0x80, 0xe2, 0x34, 0x10, 0x9f, 0xe5, 0x04, 0x20, 0x90, 0xe4, 0x01, 0x00, 0x52, 0xe1, 0x03, 0x00,
+    0x00, 0x0a, 0x03, 0x00, 0x50, 0xe1, 0xfa, 0xff, 0xff, 0x3a, 0x00, 0x00, 0xa0, 0xe3, 0x00, 0x00,
+    0x00, 0xea, 0x00, 0x00, 0x90, 0xe5, 0x04, 0x10, 0x9d, 0xe4, 0x01, 0x00, 0xc1, 0xe5, 0xaa, 0x00,
+    0xa0, 0xe3, 0x00, 0x00, 0xc1, 0xe5, 0x02, 0x40, 0xa0, 0xe3, 0x1e, 0xff, 0x2f, 0xe1, 0xef, 0xbe,
+    0xad, 0xde
+  };
+  unsigned char iobuf[1024];
+  send_cmd(cmdbuf, sizeof(cmdbuf), iobuf);
+  if (iobuf[1] != 0xaa) return -1;
+  return iobuf[2];
 }
 
 //*******************************************************
-//* Проверка работы патча загрузчика
+//* Check the Loader Patch Operation
 //*
-//* Возвращает 0, если команда 11 не поддерживается
-//* и устанавливает глобальную переменную bad_loader=1
+//* Return 0 if command 11 is not supported and set the global variable bad_loader = 1
 //*******************************************************
-int test_loader()
-{
-    int i = identify_chipset();
-    //printf("\n ident = %i\n",i);
-    if( i <= 0)
-    {
-        bad_loader = 1;
-        return 0;
-    }
-    if(chip_type < 0)
-        set_chipset(i); // если чипсет не был явно задан
-    return 1;
-}
-
-//****************************************************************
-//*  Проверка флага дефектного блока предыдущей операции чтения 
-//*
-//* 0 -нет бедблока
-//* 1 -есть
-//****************************************************************
-
-int test_badblock() {
-
-unsigned int st,r,badflag=0;
-
-// Старшие 2 байта регистра nand_buffer_status отражают прочитанный с флешки маркер. 
-// Для 8-битных флешек  используется только младший байт, для 16-битных - оба байта
-st=r=mempeek(nand_buffer_status)&0xffff0000;
-if (flash16bit == 0) {
-  if (st != 0xff0000) { 
-    badflag=1;  
-//     printf("\nst=%08x",r);    
+int test_loader() {
+  int i = identify_chipset();
+  //printf("\n ident = %i\n",i);
+  if (i <= 0) {
+    bad_loader = 1;
+    return 0;
   }
-}  
-else  if (st != 0xffff0000) badflag=1;
-return badflag;
+  if (chip_type < 0) {
+    set_chipset(i); // Set the chipset if it was not explicitly defined
+  }
+  return 1;
 }
 
+//****************************************************************
+//* Check the Bad Block Flag of the Previous Read Operation
+//*
+//* 0 - no bad block
+//* 1 - there is a bad block
+//****************************************************************
+int test_badblock() {
+  unsigned int st, r, badflag = 0;
+  // The upper 2 bytes of the nand_buffer_status register reflect the marker read from flash memory.
+  // For 8-bit flash chips, only the least significant byte is used, while for 16-bit chips, both bytes are used.
+  st = r = mempeek(nand_buffer_status) & 0xffff0000;
+  if (flash16bit == 0) {
+    if (st != 0xff0000) {
+      badflag = 1;
+	  //printf("\nst=%08x",r);  
+    }
+  } else if (st != 0xffff0000) {
+    badflag = 1;
+  }
+  return badflag;
+}
 
 //*********************************
-//*  Проверка дефектности блока
+//* Check Block for Defects
 //*********************************
 int check_block(int blk) {
-
-nand_reset(); // сброс
-setaddr(blk,0);
-mempoke(nand_cmd,0x34); // чтение data+ecc+spare
-mempoke(nand_exec,0x1);
-nandwait();
-return test_badblock();
-}  
+  nand_reset(); // Reset
+  setaddr(blk, 0);
+  mempoke(nand_cmd, 0x34); // Read data + ecc + spare
+  mempoke(nand_exec, 0x1);
+  nandwait();
+  return test_badblock();
+}
 
 //*********************************
-//* Запись bad-маркера
+//* Write Bad Block Marker
 //*********************************
 void write_badmark(unsigned int blk, int val) {
-  
-char buf[1000];
-const int udsize=0x220;
-int i;
-unsigned int cfg1bak,cfgeccbak;
-
-cfg1bak=mempeek(nand_cfg1);
-cfgeccbak=mempeek(nand_ecc_cfg);
-mempoke(nand_ecc_cfg,mempeek(nand_ecc_cfg)|1); 
-mempoke(nand_cfg1,mempeek(nand_cfg1)|1); 
-
-hardware_bad_off();
-memset(buf,val,udsize);
-buf[0]=0xeb;   // признак искусственно созданного бедблока
-
-nand_reset();
-nandwait();
-
-setaddr(blk,0);
-mempoke(nand_cmd,0x39); // запись data+ecc+spare
-for (i=0;i<spp;i++) {
- memwrite(sector_buf, buf, udsize);
- mempoke(nand_exec,1);
- nandwait();
+  char buf[1000];
+  const int udsize = 0x220;
+  int i;
+  unsigned int cfg1bak, cfgeccbak;
+  cfg1bak = mempeek(nand_cfg1);
+  cfgeccbak = mempeek(nand_ecc_cfg);
+  mempoke(nand_ecc_cfg, mempeek(nand_ecc_cfg) | 1);
+  mempoke(nand_cfg1, mempeek(nand_cfg1) | 1);
+  hardware_bad_off();
+  memset(buf, val, udsize);
+  buf[0] = 0xeb;   // Marker of artificially created bad block
+  nand_reset();
+  nandwait();
+  setaddr(blk, 0);
+  mempoke(nand_cmd, 0x39); // Write data + ecc + spare
+  for (i = 0; i < spp; i++) {
+    memwrite(sector_buf, buf, udsize);
+    mempoke(nand_exec, 1);
+    nandwait();
+  }
+  hardware_bad_on();
+  mempoke(nand_cfg1, cfg1bak);
+  mempoke(nand_ecc_cfg, cfgeccbak);
 }
-hardware_bad_on();
-mempoke(nand_cfg1,cfg1bak);
-mempoke(nand_ecc_cfg,cfgeccbak);
-}
-
 
 //************************************************
-//* Установка bad-маркера
-//* -> 0 - блок и так был дефектным
-//*    1 - был нормальным и сделан дефектным
+//* Set a Bad Block Marker
+//* -> 0 - the block was already defective
+//*    1 - it was normal and made defective
 //**********************************************
 int mark_bad(unsigned int blk) {
-
-//flash_read(blk,0,0);  
-if (!check_block(blk)) {  
- write_badmark(blk,0);
- return 1;
+  // flash_read(blk, 0, 0);
+  if (!check_block(blk)) {
+    write_badmark(blk, 0);
+    return 1;
+  }
+  return 0;
 }
-return 0;
-}
-
 
 //************************************************
-//* Снятие bad-маркера
-//* -> 0 - блок не был дефектным
-//*    1 - был дефектным и сделан нормальным
+//* Remove a Bad Block Marker
+//* -> 0 - the block was not defective
+//*    1 - it was defective and made normal
 //************************************************
 int unmark_bad(unsigned int blk) {
-  
-
-//flash_read(blk,0,0);  
-if (check_block(blk)) {  
- block_erase(blk);
- return 1;
-}
-return 0;
+  // flash_read(blk, 0, 0);
+  if (check_block(blk)) {
+    block_erase(blk);
+    return 1;
+  }
+  return 0;
 }
 
 //****************************************************
-//* Проверка буфера на наличие заполнителя бедблоков
+//* Check the Buffer for the Bad Block Filler
 //****************************************************
 int test_badpattern(unsigned char* buf) {
-  
-int i;
-for(i=0;i<512;i++) {
-  if (buf[i] != 0xbb) return 0;
-}
-return 1;
+  int i;
+  for (i = 0; i < 512; i++) {
+    if (buf[i] != 0xbb) return 0;
+  }
+  return 1;
 }
 
 //**********************************************************
-//* Установка размера поля данных сектора
+//* Set the Size of the Data Field of a Sector
 //**********************************************************
 void set_udsize(unsigned int size) {
-
-unsigned int tmpreg=mempeek(nand_cfg0);  
-
-tmpreg=(tmpreg&(~(0x3ff<<9)))|(size<<9); // CFG0.UD_SIZE_BYTES
-mempoke(nand_cfg0,tmpreg);
-
-if (((mempeek(nand_cfg1)>>27)&1) != 0) { // BCH ECC
-  tmpreg=mempeek(nand_ecc_cfg);
-  tmpreg=(tmpreg&(~(0x3ff<<16))|(size<<16)); //ECC_CFG.ECC_NUM_DATA_BYTES
-  mempoke(nand_ecc_cfg,tmpreg);
-}  
+  unsigned int tmpreg = mempeek(nand_cfg0);
+  tmpreg = (tmpreg & (~(0x3ff << 9))) | (size << 9); // CFG0.UD_SIZE_BYTES
+  mempoke(nand_cfg0, tmpreg);
+  if (((mempeek(nand_cfg1) >> 27) & 1) != 0) { // BCH ECC
+    tmpreg = mempeek(nand_ecc_cfg);
+    tmpreg = (tmpreg & (~(0x3ff << 16)) | (size << 16); // ECC_CFG.ECC_NUM_DATA_BYTES
+    mempoke(nand_ecc_cfg, tmpreg);
+  }
 }
 
 //**********************************************************
-//* Установка размера поля spare
+//* Set the Size of the Spare Field
 //**********************************************************
 void set_sparesize(unsigned int size) {
-
-unsigned int cfg0=mempeek(nand_cfg0);  
-cfg0=cfg0&(~(0xf<<23))|(size<<23); //SPARE_SIZE_BYTES 
-mempoke(nand_cfg0,cfg0);
+  unsigned int cfg0 = mempeek(nand_cfg0);
+  cfg0 = cfg0 & (~(0xf << 23)) | (size << 23); // SPARE_SIZE_BYTES
+  mempoke(nand_cfg0, cfg0);
 }
 
 //**********************************************************
-//* Установка размера поля ECC
+//* Set the Size of the ECC Field
 //**********************************************************
 void set_eccsize(unsigned int size) {
-
-uint32 cfg0, cfg1, ecccfg, bch_mode=0;
-
-cfg1=mempeek(nand_cfg1);
-  
-// Определяем тип ЕСС
-if (((cfg1>>27)&1) != 0) bch_mode=1;
-  
-if (bch_mode) {
-  ecccfg=mempeek(nand_ecc_cfg);
-  ecccfg= (ecccfg&(~(0x1f<<8))|(size<<8));
-  mempoke(nand_ecc_cfg,ecccfg);
-}  
-else {
-  cfg0=mempeek(nand_cfg0);  
-  cfg0=cfg0&(~(0xf<<19))|(size<<19); //ECC_PARITY_SIZE_BYTES = eccs
-  mempoke(nand_cfg0,cfg0);
-} 
+  uint32 cfg0, cfg1, ecccfg, bch_mode = 0;
+  cfg1 = mempeek(nand_cfg1);
+  // Determine the ECC type
+  if (((cfg1 >> 27) & 1) != 0) bch_mode = 1;
+  if (bch_mode) {
+    ecccfg = mempeek(nand_ecc_cfg);
+    ecccfg = (ecccfg & (~(0x1f << 8)) | (size << 8));
+    mempoke(nand_ecc_cfg, ecccfg);
+  } else {
+    cfg0 = mempeek(nand_cfg0);
+    cfg0 = cfg0 & (~(0xf << 19)) | (size << 19); // ECC_PARITY_SIZE_BYTES = eccs
+    mempoke(nand_cfg0, cfg0);
+  }
 }
 
-  
 //**********************************************************
-//*  Установка формата сектора в конфигурации контроллера
+//* Set the Sector Format in the Controller Configuration
 //*
-//*  udsize - размер данных в байтах
-//*  ss - размер spare в хз каких единицах
-//*  eccs - размер ecc в байтах
+//* udsize - data size in bytes
+//* ss - spare size in unknown units
+//* eccs - ECC size in bytes
 //**********************************************************
-void set_blocksize(unsigned int udsize, unsigned int ss,unsigned int eccs) {
-
-set_udsize(udsize);
-set_sparesize(ss);
-set_eccsize(eccs);
+void set_blocksize(unsigned int udsize, unsigned int ss, unsigned int eccs) {
+  set_udsize(udsize);
+  set_sparesize(ss);
+  set_eccsize(eccs);
 }
 
 //******************************************************************
-//*  Получение текущего udsize
+//* Get the Current udsize
 //******************************************************************
 int get_udsize() {
-
-return ( mempeek(nand_cfg0) & (0x3ff<<9) )>>9;
-}  
-  
+  return (mempeek(nand_cfg0) & (0x3ff << 9)) >> 9;
+}
 
 //******************************************************************
-//* Разбор параметров ключа, определяющего позицию бедмаркера
+//* Parse the parameters of the key determining the position of the bad marker
 //*
-//* Формат параметра:
-//*   xxx  - маркер в области данных сектора
-//*   Uxxx - маркер в области данных сектора
-//*   Sxxx - маркер в области ООВ (в spare)
+//* Parameter format:
+//*   xxx  - marker in the data area of the sector
+//*   Uxxx - marker in the data area of the sector
+//*   Sxxx - marker in the OOB area (spare)
 //*
-//*  badpos - позиция маркера
-//*  badloc - область, где расположен маркер (0-user, 1-spare)
+//* badpos - marker position
+//* badloc - area where the marker is located (0-user, 1-spare)
 //******************************************************************
 void parse_badblock_arg(char* arg, int* badpos, int* badloc) {
-
-char* str=arg;
-  
-*badloc=0;
-if       (toupper(str[0]) == 'U') str++;
-else if  (toupper(str[0]) == 'S') {
-  *badloc=1;
-  str++;
+  char* str = arg;
+  *badloc = 0;
+  if (toupper(str[0]) == 'U') str++;
+  else if (toupper(str[0]) == 'S') {
+    *badloc = 1;
+    str++;
+  }
+  sscanf(str, "%x", badpos);
 }
-
-sscanf(str,"%x",badpos);
-}
-
 
 //***************************************************************
-//* Определение состояния ЕСС-коррекции после операции чтения
+//* Determine the ECC Correction Status after a Read Operation
 //*
-//* Возвращает:
-//*  0 - не было коррекции
-//* -1 - некорректируемая ошибка
-//* >0 - число скорректированных ошибок
+//* Returns:
+//*  0 - there was no correction
+//* -1 - uncorrectable error
+//* >0 - number of corrected errors
 //***************************************************************
-
 int check_ecc_status() {
-  
-int bs;
-
-bs=mempeek(nand_buffer_status);
-if (((bs&0x100) != 0) && ((mempeek(nand_cmd+0xec) & 0x40) == 0)) return -1; // некорректируемая ошибка
-return bs&0x1f; // 	число корректируемых ошибок
+  int bs;
+  bs = mempeek(nand_buffer_status);
+  if (((bs & 0x100) != 0) && ((mempeek(nand_cmd + 0xec) & 0x40) == 0)) return -1; // uncorrectable error
+  return bs & 0x1f; // number of correctable errors
 }
 
 //***************************************************************
-//*  Сброс движка ЕСС ВСН
+//* Reset the ECC Engine VSN
 //***************************************************************
 void bch_reset() {
-
-int cfgecctemp;  
-  
-if (!bch_mode) return;
-cfgecctemp=mempeek(nand_ecc_cfg); // конфигурация с учётом включения/отключения ECC
-mempoke(nand_ecc_cfg,cfgecctemp|2); // сброс движка BCH
-mempoke(nand_ecc_cfg,cfgecctemp); // восстановление конфигурации BCH
+  int cfgecctemp;
+  if (!bch_mode) return;
+  cfgecctemp = mempeek(nand_ecc_cfg); // Configuration considering ECC enable/disable
+  mempoke(nand_ecc_cfg, cfgecctemp | 2); // Reset BCH engine
+  mempoke(nand_ecc_cfg, cfgecctemp); // Restore BCH configuration
 }
