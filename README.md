@@ -1,21 +1,20 @@
 # qtools
-Набор инструментов для работы с flash модемов на чипсете Qualcom
-Набор состоит из пакета утилит и набора патченных загрузчиков.
+A set of tools for working with flash on Qualcom chipset based modems. The set consists of a package of utilities and a set of patched bootloaders.
 
-qcommand - интерактивный терминал для ввода команд через командный порт. Идет на замену жутко неудобного revskills.
-           Позволяет вводить побайтно командные пакеты, редактировать память, читать и просматривать любй сектор flash.
+qcommand - an interactive terminal for entering commands through the command port. It replaces the terribly inconvenient revskills. Allows you to enter command packets byte-by-byte, edit memory, read and view any flash sector.
 
-qrmem - программа для чтения дампа адресного пространства модема.
+qrmem - a program for reading a modem address space dump.
 
-qrflash - программа для чтения flash. Умеет читать как диапазон блоков, так и разделы по карте разделов.
+qrflas - a flash reading program. Can read both a range of blocks and partitions from a partition map.
 
-qwflash - программа для записи образов разделов через режим user partitions загрузчика, аналогично QPST.
+qwflash - a program for writing partition images through the user partitions mode of the bootloader, similar to QPST.
 
-qwdirect - программа для прямой записи блоков флешки с/без ООВ через порты контроллера (без участия логики загрузчика).
+qwdirect - a program for direct writing of flash drive blocks with/without OOB through controller ports (without the participation of bootloader logic).
 
-qdload - программа для загрузки загрузчиков. Требует, чтобы модем был в download mode или режиме аварийной загрузки PBL.
+qdload - a program for downloading loaders. Requires the modem to be in download mode or PBL emergency boot mode.
 
-dload.sh - скрипт для перевода модема в режим загрузки и отправки в него указанного загрузчика.
+qnvram - a program to write directly on EFS partition.
 
-Для работы программ требуются модифицированные версии загрузчиков. Они собраны в каталоге loaders, а исходник патча
-лежит в cmd_05_write_patched.asm.
+dload.sh - a script for putting the modem into download mode and sending the specified loader to it.
+
+Programs require modified versions of bootloaders to operate. They are collected in the loaders directory, and the patch source is in cmd_05_write_patched.asm.
