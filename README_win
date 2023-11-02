@@ -1,3 +1,3 @@
-Сборка с помощью MinGW: make -f Makefile.win
+Build with MinGW64: make -f Makefile.win
 
 
