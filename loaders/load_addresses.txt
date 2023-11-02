@@ -1,5 +1,5 @@
-Адреса загрузки загрузчиков для различных чипсетов
-(в hex, именно так адрес указывается в ключе -a программы qdload):
+Boot addresses of loaders for different chipsets
+(in hex, this is how the address is specified in the -a key of the qdload program):
 
 
 
