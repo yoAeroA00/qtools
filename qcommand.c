@@ -1,481 +1,511 @@
 #include "include.h"
 
-// флаг посылки префикса 7E
-int prefixflag=1;
-// флаг HDLC-режима
-int hdlcflag=1; 
+// Flag for sending the 7E prefix
+int prefixFlag = 1;
 
+// HDLC mode flag
+int hdlcFlag = 1;
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-//* Интерактивная оболочка для ввода команд в загрузчик
+// Interactive shell for entering commands into the bootloader
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-
 //*******************************************************************
-//* Отправка командного буфера в модем и размор результата
+// Send the command buffer to the modem and unfreeze the result
 //*******************************************************************
-void iocmd(char* cmdbuf, int cmdlen) {
+void iocmd(char* cmdBuffer, int cmdLength) {
+    unsigned char ioBuffer[2048];
+    unsigned int ioLength;
 
-unsigned char iobuf[2048];
-unsigned int iolen;
-  
-if (hdlcflag) {
-  // Команда HDLC-режима
-  iolen=send_cmd_base(cmdbuf,cmdlen,iobuf,prefixflag);
-  if (iobuf[1] == 0x0e) {
-    show_errpacket ("[ERR] ", iobuf, iolen);
-    return;
-  }  
-}
-else  {
-  qwrite(siofd,cmdbuf,cmdlen);
-  iolen=qread(siofd,iobuf,1024);
-}  
-  
-if (iolen != 0) {
-  printf("\n ---- ответ --- \n");
-  dump(iobuf,iolen,0);
-}  
-printf("\n");
+    if (hdlcFlag) {
+        // HDLC mode command
+        ioLength = sendCmdBase(cmdBuffer, cmdLength, ioBuffer, prefixFlag);
+        if (ioBuffer[1] == 0x0E) {
+            showErrPacket("[ERR] ", ioBuffer, ioLength);
+            return;
+        }
+    } else {
+        qWrite(sioFd, cmdBuffer, cmdLength);
+        ioLength = qRead(sioFd, ioBuffer, 1024);
+    }
+
+    if (ioLength != 0) {
+        printf("\n ---- response --- \n");
+        dump(ioBuffer, ioLength, 0);
+    }
+    printf("\n");
 }
 
 //*******************************************************************
-//* Поиск в строке символов, отличающихся от пробела
+//* Search for non-space characters in a string
 //*
 //* zmode - 
-//*  0 - искать первый непробел
-//*  1 - искать сначала пробел, потом непробел
+//*  0 - search for the first non-space character
+//*  1 - search for a space first, then a non-space character
 //*******************************************************************
-char* find_token(char* line, int zmode) {
-  
-int i=0;
+char* findToken(char* line, int zeroMode) {
+    int i = 0;
 
-if (zmode) { 
-  // ищем пробел
-  for (i=0; line[i] != ' ' ; i++) {
-   if ((line[i] == '\r') || (line [i] == '\n') || (line [i] == 0)) return 0; // логический конец строки
-  } 
-}
+    if (zeroMode) {
+        // Look for a space
+        for (i = 0; line[i] != ' '; i++) {
+            if (line[i] == '\r' || line[i] == '\n' || line[i] == 0) {
+                return 0; // Logical end of the string
+            }
+        }
+    }
 
-for (; line[i] != 0 ; i++) {
-  if ((line[i] == '\r') || (line [i] == '\n')) return 0; // логический конец строки
-  if (line[i] != ' ') return line+i;
-}
-return 0;
-}
-
-//*******************************************************************
-//* Разбор введенной командной последовательности и ее запуск
-//*******************************************************************
-void ascii_cmd(char* line) {
-
-char* sptr;
-unsigned char cmdbuf[2048];
-int bcnt=0;
-int i;
-
-sptr=find_token(line,0); // разбор командных байтов, разделенных пробелами
-if (sptr == 0) return; // пустая командная строка
-
-do {
-  if (*sptr == '\"') {
-    // режим ввода ascii-текста
-    sptr++;
-    while(*sptr != '\"') { // до кавычки
-     if ((*sptr == 0) || (*sptr == '\n') || (*sptr == '\r')) {
-       printf("\n Закрывающая кавычка отстутствует\n");
-       return;
-     }  
-     cmdbuf[bcnt++]=*sptr++;
-    }  
-  }
-  else {
-    // режим ввода hex-байтов
-    sscanf(sptr,"%x",&i);
-    cmdbuf[bcnt++]=i;
-  } 
-} while ((sptr=find_token(sptr,1)) != 0);
-//printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-//dump(cmdbuf,bcnt,0);
-iocmd(cmdbuf,bcnt);
+    for (; line[i] != 0; i++) {
+        if (line[i] == '\r' || line[i] == '\n') {
+            return 0; // Logical end of the string
+        }
+        if (line[i] != ' ') {
+            return line + i;
+        }
+    }
+    return 0;
 }
 
 //*******************************************************************
-//*  Отправка в модем содержимого файла в качестве команды 
+// Parse the entered command sequence and execute it
 //*******************************************************************
-void binary_cmd(char* line) {
-  
-unsigned char cmdbuf[2048];
-FILE* fcmd;
-unsigned int i;
+void asciiCmd(char* line) {
+    char* sptr;
+    unsigned char cmdBuffer[2048];
+    int byteCount = 0;
+    int i;
 
-char* sptr;
-sptr=strtok(line," "); // выделяем имя файла
-if (sptr == 0) {
-  printf(" Не указано имя файла\n");
-  return;
-}  
-fcmd=fopen(sptr,"r");
-if (fcmd == 0) {
-  printf(" Ошибка открытия файла %s\n",sptr);
-  return;
-}
-fseek(fcmd,0,SEEK_END);
-i=ftell(fcmd);
-if (i>1024) {
-  printf(" Слишком большой файл - %u байт\n",i);
-  fclose(fcmd);
-  return;
-}
-rewind(fcmd);
-fread(cmdbuf,i,1,fcmd);
-fclose(fcmd);
-iocmd(cmdbuf,i);
-}
+    sptr = findToken(line, 0); // Parse command bytes separated by spaces
+    if (sptr == 0) {
+        return; // Empty command string
+    }
 
+    do {
+        if (*sptr == '\"') {
+            // Enter ASCII text mode
+            sptr++;
+            while (*sptr != '\"') { // up to the quotation mark
+                if (*sptr == 0 || *sptr == '\n' || *sptr == '\r') {
+                    printf("\n Closing quote is missing\n");
+                    return;
+                }
+                cmdBuffer[byteCount++] = *sptr++;
+            }
+        } else {
+            // Enter hex byte mode
+            sscanf(sptr, "%x", &i);
+            cmdBuffer[byteCount++] = i;
+        }
+    } while ((sptr = findToken(sptr, 1)) != 0);
+
+    //printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+    //dump(cmdbuf,bcnt,0);
+    iocmd(cmdBuffer, byteCount);
+}
 
 //*******************************************************************
-//*   Переключение hdlc-режима
+// Send the content of a file as a command to the modem
 //*******************************************************************
-void hdlcswitch(char* line) {
+void binaryCmd(char* line) {
+    unsigned char cmdBuffer[2048];
+    FILE* commandFile;
+    unsigned int i;
 
-char* sptr;
-unsigned int mode;
-sptr=strtok(line," "); // выделяем параметр
-
-if (sptr != 0) {  // режим указан - устанавливаем его
-  sscanf(sptr,"%u",&mode);
-  hdlcflag=mode?1:0;
+    char* sptr;
+    sptr = strtok(line, " "); // Extract the file name
+    if (sptr == 0) {
+        printf(" File name not specified\n");
+        return;
+    }
+    commandFile = fopen(sptr, "r");
+    if (commandFile == 0) {
+        printf(" Error opening the file %s\n", sptr);
+        return;
+    }
+    fseek(commandFile, 0, SEEK_END);
+    i = ftell(commandFile);
+    if (i > 1024) {
+        printf(" The file is too large - %u bytes\n", i);
+        fclose(commandFile);
+        return;
+    }
+    rewind(commandFile);
+    fread(cmdBuffer, i, 1, commandFile);
+    fclose(commandFile);
+    iocmd(cmdBuffer, i);
 }
-printf(" HDLC %s\n",hdlcflag?"On":"Off");
-}
 
+//*******************************************************************
+// Switch HDLC mode on or off
+//*******************************************************************
+void hdlcSwitch(char* line) {
+    char* sptr;
+    unsigned int mode;
+    sptr = strtok(line, " "); // Extract the parameter
 
-//**********************************************
-//*  Разбор содержимого регистра CFG0
-//**********************************************
-void decode_cfg0() {
-  
-unsigned int cfg0=mempeek(nand_cfg0);
-printf("\n **** Конфигурационный регистр 0 *****");
-printf("\n * NUM_ADDR_CYCLES              = %x",(cfg0>>27)&7);
-printf("\n * SPARE_SIZE_BYTES             = %x",(cfg0>>23)&0xf);
-printf("\n * ECC_PARITY_SIZE_BYTES        = %x",(cfg0>>19)&0xf);
-printf("\n * UD_SIZE_BYTES                = %x",(cfg0>>9)&0x3ff);
-printf("\n * CW_PER_PAGE                  = %x",((cfg0>>6)&7) | ((cfg0>>2)&8));
-printf("\n * DISABLE_STATUS_AFTER_WRITE   = %x",(cfg0>>4)&1);
-printf("\n * BUSY_TIMEOUT_ERROR_SELECT    = %x",(cfg0)&7);
+    if (sptr != 0) {
+        // The mode is specified - set it
+        sscanf(sptr, "%u", &mode);
+        hdlcFlag = mode ? 1 : 0;
+    }
+    printf(" HDLC %s\n", hdlcFlag ? "On" : "Off");
 }
 
 //**********************************************
-//*  Разбор содержимого регистра CFG1
+// Decode the contents of CFG0 register
 //**********************************************
-void decode_cfg1() {
-  
-unsigned int cfg1=mempeek(nand_cfg1);
-printf("\n **** Конфигурационный регистр 1 *****");
-printf("\n * ECC_MODE                      = %x",(cfg1>>28)&3);
-printf("\n * ENABLE_BCH_ECC                = %x",(cfg1>>27)&1);
-printf("\n * DISABLE_ECC_RESET_AFTER_OPDONE= %x",(cfg1>>25)&1);
-printf("\n * ECC_DECODER_CGC_EN            = %x",(cfg1>>24)&1);
-printf("\n * ECC_ENCODER_CGC_EN            = %x",(cfg1>>23)&1);
-printf("\n * WR_RD_BSY_GAP                 = %x",(cfg1>>17)&0x3f);
-printf("\n * BAD_BLOCK_IN_SPARE_AREA       = %x",(cfg1>>16)&1);
-printf("\n * BAD_BLOCK_BYTE_NUM            = %x",(cfg1>>6)&0x3ff);
-printf("\n * CS_ACTIVE_BSY                 = %x",(cfg1>>5)&1);
-printf("\n * NAND_RECOVERY_CYCLES          = %x",(cfg1>>2)&7);
-printf("\n * WIDE_FLASH                    = %x",(cfg1>>1)&1);
-printf("\n * ECC_DISABLE                   = %x",(cfg1)&1);
+void decodeCfg0() {
+    unsigned int cfg0 = memPeek(nandCfg0);
+    printf("\n **** Configuration Register 0 *****");
+    printf("\n * NUM_ADDR_CYCLES              = %x", (cfg0 >> 27) & 7);
+    printf("\n * SPARE_SIZE_BYTES             = %x", (cfg0 >> 23) & 0xf);
+    printf("\n * ECC_PARITY_SIZE_BYTES        = %x", (cfg0 >> 19) & 0xf);
+    printf("\n * UD_SIZE_BYTES                = %x", (cfg0 >> 9) & 0x3ff);
+    printf("\n * CW_PER_PAGE                  = %x", ((cfg0 >> 6) & 7) | ((cfg0 >> 2) & 8));
+    printf("\n * DISABLE_STATUS_AFTER_WRITE   = %x", (cfg0 >> 4) & 1);
+    printf("\n * BUSY_TIMEOUT_ERROR_SELECT    = %x", (cfg0) & 7);
 }
 
+//**********************************************
+// Decode the contents of CFG1 register
+//**********************************************
+void decodeCfg1() {
+    unsigned int cfg1 = memPeek(nandCfg1);
+    printf("\n **** Configuration Register 1 *****");
+    printf("\n * ECC_MODE                      = %x", (cfg1 >> 28) & 3);
+    printf("\n * ENABLE_BCH_ECC                = %x", (cfg1 >> 27) & 1);
+    printf("\n * DISABLE_ECC_RESET_AFTER_OPDONE= %x", (cfg1 >> 25) & 1);
+    printf("\n * ECC_DECODER_CGC_EN            = %x", (cfg1 >> 24) & 1);
+    printf("\n * ECC_ENCODER_CGC_EN            = %x", (cfg1 >> 23) & 1);
+    printf("\n * WR_RD_BSY_GAP                 = %x", (cfg1 >> 17) & 0x3f);
+    printf("\n * BAD_BLOCK_IN_SPARE_AREA       = %x", (cfg1 >> 16) & 1);
+    printf("\n * BAD_BLOCK_BYTE_NUM            = %x", (cfg1 >> 6) & 0x3ff);
+    printf("\n * CS_ACTIVE_BSY                 = %x", (cfg1 >> 5) & 1);
+    printf("\n * NAND_RECOVERY_CYCLES          = %x", (cfg1 >> 2) & 7);
+    printf("\n * WIDE_FLASH                    = %x", (cfg1 >> 1) & 1);
+    printf("\n * ECC_DISABLE                   = %x", (cfg1) & 1);
+}
 
 //**********************************************8
-//* обработка команд
+// Command processing
 //**********************************************8
+void processCommand(char* cmdLine) {
+    int address, length = 128, data;
+    char* sptr;
+    char memBuffer[4096];
+    int block, page, sector;
+}
 
-void process_command(char* cmdline) {
+switch (cmdLine[0]) {
 
-int adr,len=128,data;
-char* sptr;
-char membuf[4096];
-int block,page,sect;
-
-
-switch (cmdline[0]) {
-  
-  // help
+  // Help
   case 'h':
-    printf("\n Доступны следующие команды:\n\n\
-c nn nn nn nn.... - формирование и запуск командного пакета из перечисленных байтов\n\
-@ file            - запуск командного пакета из указанного файла\n\
-d adr [len]       - прсмотр дампа адресного пространства системы\n\
-m adr word ...    - записать слова по указанному адресу\n\
-r block page sect - чтение блока флешки в секторный буфер \n\
-s                 - прсмотр дампа сектороного буфера NAND-контроллера\n\
-n                 - просмотр содежримого регистров NAND-контроллера\n\
-k                 - разбор содержимого конфигурационных регистров\n\
-i [s]             - запуск процедуры HELLO, s - без настройки конфигурации\n\
-f [n]             - включение(1)/отключение(0)/просмотр состояния HDLC-режима\n\
-x                 - выход из программы\n\
+    printf("\n Available commands:\n\n\
+c nn nn nn nn.... - generate and execute a command packet from the listed bytes\n\
+@ file            - execute a command packet from the specified file\n\
+d adr [len]       - view the dump of the system's address space\n\
+m adr word ...    - write words to the specified address\n\
+r block page sect - read a flash block into a sector buffer \n\
+s                 - view the dump of the NAND controller sector buffer\n\
+n                 - view the contents of NAND controller registers\n\
+k                 - decode the contents of configuration registers\n\
+i [s]             - start the HELLO procedure, s - without configuring the settings\n\
+f [n]             - enable(1)/disable(0)/view the state of HDLC mode\n\
+x                 - exit the program\n\
 \n");
     break;
-  // обработка командного пакета
-  case 'c':  
-   ascii_cmd(cmdline+1);
-   break;
+  
+  // Processing a command packet
+  case 'c':
+    asciiCmd(cmdLine + 1);
+    break;
  
-  case '@':  
-   binary_cmd(cmdline+1);
-   break;
+  case '@':
+    binaryCmd(cmdLine + 1);
+    break;
 
   case 'f':
-    hdlcswitch(cmdline+1);
+    hdlcSwitch(cmdLine + 1);
     break;
     
-  // активация загрузчика 
+  // Activating the bootloader
   case 'i':
-    sptr=strtok(cmdline+1," "); // адрес
+    sptr = strtok(cmdLine + 1, " "); // address
     if ((sptr == 0) || (sptr[0] == 0x0a)) {
       hello(1);
       break;
     }
     if (sptr[0] != 's') {
-      printf("\n Недопустимый параметр в команде i");
+      printf("\n Invalid parameter in the i command");
       break;
     }
     hello(2);
     break;
     
-  // дамп памяти
+  // Memory dump
   case 'd':  
-   sptr=strtok(cmdline+1," "); // адрес
-   if (sptr == 0) {printf("\n Не указан адрес"); return;}
-   sscanf(sptr,"%x",&adr);
-   sptr=strtok(0," "); // длина
-   if (sptr != 0) sscanf(sptr,"%x",&len);
-   if (memread(membuf,adr,len)) dump(membuf,len,adr); 
-   break;
+    sptr = strtok(cmdLine + 1, " "); // address
+    if (sptr == 0) {
+      printf("\n Address not specified");
+      return;
+    }
+    sscanf(sptr, "%x", &adr);
+    sptr = strtok(0, " "); // length
+    if (sptr != 0) {
+      sscanf(sptr, "%x", &len);
+    }
+    if (memRead(memBuf, adr, len)) {
+      dump(memBuf, len, adr); 
+    }
+    break;
 
   case 'm':
-   sptr=strtok(cmdline+1," "); // адрес
-   if (sptr == 0) {printf("\n Не указан адрес"); return;}
-   sscanf(sptr,"%x",&adr);
-   while((sptr=strtok(0," ")) != 0) { // данные
-     sscanf(sptr,"%x",&data);
-     if (!mempoke(adr,data)) printf("\nКоманда возвратила ошибку, adr=%08x  data=%08x\n",adr,data);
-     adr+=4;
-   }
-   break;
+    sptr = strtok(cmdLine + 1, " "); // address
+    if (sptr == 0) {
+      printf("\n Address not specified");
+      return;
+    }
+    sscanf(sptr, "%x", &adr);
+    while ((sptr = strtok(0, " ")) != 0) { // data
+      sscanf(sptr, "%x", &data);
+      if (!memPoke(adr, data)) {
+        printf("\n Command returned an error, adr=%08x  data=%08x\n", adr, data);
+      }
+      adr += 4;
+    }
+    break;
 
   case 'r':
-   hello(0);
-   sptr=strtok(cmdline+1," "); // блок
-   if (sptr == 0) {printf("\n Не указан # блока"); return;}
-   sscanf(sptr,"%x",&block);
+    hello(0);
+    sptr = strtok(cmdLine + 1, " "); // block
+    if (sptr == 0) {
+      printf("\n Block # not specified");
+      return;
+    }
+    sscanf(sptr, "%x", &block);
 
-   sptr=strtok(0," ");        // страница
-   if (sptr == 0) {printf("\n Не указан # страницы"); return;}
-   sscanf(sptr,"%x",&page);
-   if (page>63)  {printf("\n Слишком большой # страницы"); return;}
+    sptr = strtok(0, " "); // page
+    if (sptr == 0) {
+      printf("\n Page # not specified");
+      return;
+    }
+    sscanf(sptr, "%x", &page);
+    if (page > 63)  {
+      printf("\n Page # is too large");
+      return;
+    }
    
-   sptr=strtok(0," ");        // сектор
-   if (sptr == 0) {printf("\n Не указан # сектора"); return;}
-   sscanf(sptr,"%x",&sect);
-   if (sect>spp-1)  {printf("\n Слишком большой # сектора"); return;}
+    sptr = strtok(0, " "); // sector
+    if (sptr == 0) {
+      printf("\n Sector # not specified");
+      return;
+    }
+    sscanf(sptr, "%x", &sect);
+    if (sect > spp - 1)  {
+      printf("\n Sector # is too large");
+      return;
+    }
    
-   if (!flash_read(block,page,sect)) printf("\n    *** badblock ***\n");
-   memread(membuf,sector_buf,0x23c);
-   dump(membuf,0x23c,0); 
-   break;
-   
+    if (!flashRead(block, page, sect)) {
+      printf("\n    *** bad block ***\n");
+    }
+    memRead(memBuf, sectorBuf, 0x23c);
+    dump(memBuf, 0x23c, 0); 
+    break;
    
   case 's': 
-   hello(0);
-   memread(membuf,sector_buf,0x23c);
-   dump(membuf,0x23c,0); 
-   break;
+    hello(0);
+    memRead(memBuf, sectorBuf, 0x23c);
+    dump(memBuf, 0x23c, 0); 
+    break;
 
   case 'n':
-   hello(0);
-   if (is_chipset("MDM9x4x")) {
-   memread(membuf,nand_cmd,0x1c);
-   memread(membuf+0x20,nand_cmd+0x20,0x0c);
-   memread(membuf+0x40,nand_cmd+0x40,0x0c);
-//   memread(membuf+0x64,nand_cmd+0x64,4);
-//   memread(membuf+0x70,nand_cmd+0x70,0x1c);
-//   memread(membuf+0xa0,nand_cmd+0xa0,0x10);
-//   memread(membuf+0xd0,nand_cmd+0xd0,0x10);
-   memread(membuf+0xe8,nand_cmd+0xe8,0x0c);
-   } else memread(membuf,nand_cmd,0x100);
+    hello(0);
+    if (isChipset("MDM9x4x")) {
+      memRead(memBuf, nandCmd, 0x1c);
+      memRead(memBuf + 0x20, nandCmd + 0x20, 0x0c);
+      memRead(memBuf + 0x40, nandCmd + 0x40, 0x0c);
+      //   memread(membuf+0x64,nand_cmd+0x64,4);
+      //   memread(membuf+0x70,nand_cmd+0x70,0x1c);
+      //   memread(membuf+0xa0,nand_cmd+0xa0,0x10);
+      //   memread(membuf+0xd0,nand_cmd+0xd0,0x10);
+      memread(membuf+0xe8,nand_cmd+0xe8,0x0c);
+    } else {
+      memRead(memBuf, nandCmd, 0x100);
+    }
 
-   printf("\n* 000 NAND_FLASH_CMD         = %08x",*((unsigned int*)&membuf[0]));
-   printf("\n* 004 NAND_ADDR0             = %08x",*((unsigned int*)&membuf[4]));
-   printf("\n* 008 NAND_ADDR1             = %08x",*((unsigned int*)&membuf[8]));
-   printf("\n* 00c NAND_CHIP_SELECT       = %08x",*((unsigned int*)&membuf[0xc]));
-   printf("\n* 010 NANDC_EXEC_CMD         = %08x",*((unsigned int*)&membuf[0x10]));
-   printf("\n* 014 NAND_FLASH_STATUS      = %08x",*((unsigned int*)&membuf[0x14]));
-   printf("\n* 018 NANDC_BUFFER_STATUS    = %08x",*((unsigned int*)&membuf[0x18]));
-   printf("\n* 020 NAND_DEV0_CFG0         = %08x",*((unsigned int*)&membuf[0x20]));
-   printf("\n* 024 NAND_DEV0_CFG1         = %08x",*((unsigned int*)&membuf[0x24]));
-   printf("\n* 028 NAND_DEV0_ECC_CFG      = %08x",*((unsigned int*)&membuf[0x28]));
-   printf("\n* 040 NAND_FLASH_READ_ID     = %08x",*((unsigned int*)&membuf[0x40]));
-   printf("\n* 044 NAND_FLASH_READ_STATUS = %08x",*((unsigned int*)&membuf[0x44]));
-   printf("\n* 048 NAND_FLASH_READ_ID2    = %08x",*((unsigned int*)&membuf[0x48]));
-   if (!(is_chipset("MDM9x4x"))) {
-		printf("\n* 064 FLASH_MACRO1_REG       = %08x",*((unsigned int*)&membuf[0x64]));
-		printf("\n* 070 FLASH_XFR_STEP1        = %08x",*((unsigned int*)&membuf[0x70]));
-		printf("\n* 074 FLASH_XFR_STEP2        = %08x",*((unsigned int*)&membuf[0x74]));
-		printf("\n* 078 FLASH_XFR_STEP3        = %08x",*((unsigned int*)&membuf[0x78]));
-		printf("\n* 07c FLASH_XFR_STEP4        = %08x",*((unsigned int*)&membuf[0x7c]));
-		printf("\n* 080 FLASH_XFR_STEP5        = %08x",*((unsigned int*)&membuf[0x80]));
-		printf("\n* 084 FLASH_XFR_STEP6        = %08x",*((unsigned int*)&membuf[0x84]));
-		printf("\n* 088 FLASH_XFR_STEP7        = %08x",*((unsigned int*)&membuf[0x88]));
-		printf("\n* 0a0 FLASH_DEV_CMD0         = %08x",*((unsigned int*)&membuf[0xa0]));
-		printf("\n* 0a4 FLASH_DEV_CMD1         = %08x",*((unsigned int*)&membuf[0xa4]));
-		printf("\n* 0a8 FLASH_DEV_CMD2         = %08x",*((unsigned int*)&membuf[0xa8]));
-		printf("\n* 0ac FLASH_DEV_CMD_VLD      = %08x",*((unsigned int*)&membuf[0xac]));
-		printf("\n* 0d0 FLASH_DEV_CMD3         = %08x",*((unsigned int*)&membuf[0xd0]));
-		printf("\n* 0d4 FLASH_DEV_CMD4         = %08x",*((unsigned int*)&membuf[0xd4]));
-		printf("\n* 0d8 FLASH_DEV_CMD5         = %08x",*((unsigned int*)&membuf[0xd8]));
-		printf("\n* 0dc FLASH_DEV_CMD6         = %08x",*((unsigned int*)&membuf[0xdc]));
-   }
-   printf("\n* 0e8 NAND_ERASED_CW_DET_CFG = %08x",*((unsigned int*)&membuf[0xe8]));
-   printf("\n* 0ec NAND_ERASED_CW_DET_ST  = %08x",*((unsigned int*)&membuf[0xec]));
-   printf("\n* 0f0 EBI2_ECC_BUF_CFG       = %08x\n",*((unsigned int*)&membuf[0xf0]));
-   break;
+    printf("\n* 000 NAND_FLASH_CMD         = %08x", *((unsigned int*)&memBuf[0]));
+    printf("\n* 004 NAND_ADDR0             = %08x", *((unsigned int*)&memBuf[4]));
+    printf("\n* 008 NAND_ADDR1             = %08x", *((unsigned int*)&memBuf[8]));
+    printf("\n* 00c NAND_CHIP_SELECT       = %08x", *((unsigned int*)&memBuf[0xc]));
+    printf("\n* 010 NANDC_EXEC_CMD         = %08x", *((unsigned int*)&memBuf[0x10]));
+    printf("\n* 014 NAND_FLASH_STATUS      = %08x", *((unsigned int*)&memBuf[0x14]));
+    printf("\n* 018 NANDC_BUFFER_STATUS    = %08x", *((unsigned int*)&memBuf[0x18]));
+    printf("\n* 020 NAND_DEV0_CFG0         = %08x", *((unsigned int*)&memBuf[0x20]));
+    printf("\n* 024 NAND_DEV0_CFG1         = %08x", *((unsigned int*)&memBuf[0x24]));
+    printf("\n* 028 NAND_DEV0_ECC_CFG      = %08x", *((unsigned int*)&memBuf[0x28]));
+    printf("\n* 040 NAND_FLASH_READ_ID     = %08x", *((unsigned int*)&memBuf[0x40]));
+    printf("\n* 044 NAND_FLASH_READ_STATUS = %08x", *((unsigned int*)&memBuf[0x44]));
+    printf("\n* 048 NAND_FLASH_READ_ID2    = %08x", *((unsigned int*)&memBuf[0x48]));
+    if (!(isChipset("MDM9x4x"))) {
+      printf("\n* 064 FLASH_MACRO1_REG       = %08x", *((unsigned int*)&memBuf[0x64]));
+      printf("\n* 070 FLASH_XFR_STEP1        = %08x", *((unsigned int*)&memBuf[0x70]));
+      printf("\n* 074 FLASH_XFR_STEP2        = %08x", *((unsigned int*)&memBuf[0x74]));
+      printf("\n* 078 FLASH_XFR_STEP3        = %08x", *((unsigned int*)&memBuf[0x78]));
+      printf("\n* 07c FLASH_XFR_STEP4        = %08x", *((unsigned int*)&memBuf[0x7c]));
+      printf("\n* 080 FLASH_XFR_STEP5        = %08x", *((unsigned int*)&memBuf[0x80]));
+      printf("\n* 084 FLASH_XFR_STEP6        = %08x", *((unsigned int*)&memBuf[0x84]));
+      printf("\n* 088 FLASH_XFR_STEP7        = %08x", *((unsigned int*)&memBuf[0x88]));
+      printf("\n* 0a0 FLASH_DEV_CMD0         = %08x", *((unsigned int*)&memBuf[0xa0]));
+      printf("\n* 0a4 FLASH_DEV_CMD1         = %08x", *((unsigned int*)&memBuf[0xa4]));
+      printf("\n* 0a8 FLASH_DEV_CMD2         = %08x", *((unsigned int*)&memBuf[0xa8]));
+      printf("\n* 0ac FLASH_DEV_CMD_VLD      = %08x", *((unsigned int*)&memBuf[0xac]));
+      printf("\n* 0d0 FLASH_DEV_CMD3         = %08x", *((unsigned int*)&memBuf[0xd0]));
+      printf("\n* 0d4 FLASH_DEV_CMD4         = %08x", *((unsigned int*)&memBuf[0xd4]));
+      printf("\n* 0d8 FLASH_DEV_CMD5         = %08x", *((unsigned int*)&memBuf[0xd8]));
+      printf("\n* 0dc FLASH_DEV_CMD6         = %08x", *((unsigned int*)&memBuf[0xdc]));
+    }
+    printf("\n* 0e8 NAND_ERASED_CW_DET_CFG = %08x", *((unsigned int*)&memBuf[0xe8]));
+    printf("\n* 0ec NAND_ERASED_CW_DET_ST  = %08x", *((unsigned int*)&memBuf[0xec]));
+    printf("\n* 0f0 EBI2_ECC_BUF_CFG       = %08x\n", *((unsigned int*)&memBuf[0xf0]));
+    break;
   case 'x': 
-   exit(0);
-   break;
+    exit(0);
+    break;
 
   case 'k':
     hello(0);
-    decode_cfg0();
+    decodeCfg0();
     printf("\n");
-    decode_cfg1();
+    decodeCfg1();
     printf("\n");
     break;
    
   default:
-    printf("\nНеопределенная команда\n");
+    printf("\nUndefined command\n");
     break;
 }   
 }    
-    
+
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-void main(int argc,char* argv[]) {
+// Interactive shell's main function
+void main(int argc, char* argv[]) {
   
 #ifndef WIN32
-char* line;
-char oldcmdline[1024]="";
+  char* line;
+  char oldCmdLine[1024] = "";
 #else
-char line[1024];
+  char line[1024];
 #endif
-char scmdline[1024]={0};
+  char sCmdLine[1024] = {0};
 #ifndef WIN32
-char devname[50]="/dev/ttyUSB0";
+  char devName[50] = "/dev/ttyUSB0";
 #else
-char devname[50]="";
+  char devName[50] = "";
 #endif
-int opt,helloflag=0;
+  int opt, helloFlag = 0;
 
-while ((opt = getopt(argc, argv, "p:ic:hek:f")) != -1) {
-  switch (opt) {
-   case 'h': 
-     printf("\nИнтерактивная оболочка для ввода команд в загрузчик\n\n\
-Допустимы следующие ключи:\n\n\
--p <tty>       - указывает имя устройства последовательного порта для общения с загрузчиком\n\
--i             - запускает процедуру HELLO для инициализации загрузчика\n\
--e             - запрещает передачу префикса 7E перед командой\n\
--f             - отключает HDLC-форматирование командных пакетов\n\
--k #           - код чипсета (-kl - получить список кодов)\n\
--c \"<команда>\" - запускает указанную команду и завершает работу\n");
-    return;
-     
-   case 'p':
-    strcpy(devname,optarg);
-    break;
+  while ((opt = getopt(argc, argv, "p:ichekf")) != -1) {
+    switch (opt) {
+      case 'h': 
+        printf("\nInteractive shell for entering commands into the bootloader\n\n\
+Available options:\n\n\
+-p <tty>       - specifies the name of the serial port device to communicate with the bootloader\n\
+-i             - starts the HELLO procedure to initialize the bootloader\n\
+-e             - disables sending the 7E prefix before the command\n\
+-f             - disables HDLC formatting of command packets\n\
+-k #           - chipset code (-kl - get a list of codes)\n\
+-c \"<command>\" - runs the specified command and exits\n");
+        return;
+         
+      case 'p':
+        strcpy(devName, optarg);
+        break;
 
-   case 'f':
-     hdlcflag=0;
-     break;
-    
-   case 'k':
-    define_chipset(optarg);
-    break;
-    
-   case 'i':
-     helloflag=1;
-     break;
-     
-   case 'e':
-     prefixflag=0;
-     break;
-     
-   case 'c':
-     strcpy(scmdline,optarg);
-     break;
+      case 'f':
+        hdlcFlag = 0;
+        break;
+      
+      case 'k':
+        defineChipset(optarg);
+        break;
+      
+      case 'i':
+        helloFlag = 1;
+        break;
+        
+      case 'e':
+        prefixFlag = 0;
+        break;
+         
+      case 'c':
+        strcpy(sCmdLine, optarg);
+        break;
 
-   case '?':
-   case ':':  
-     return;
-  }
-}  
+      case '?':
+      case ':':  
+        return;
+    }
+  }  
 
 #ifdef WIN32
-if (*devname == '\0')
-{
-   printf("\n - Последовательный порт не задан\n"); 
-   return; 
-}
+  if (*devName == '\0') {
+    printf("\n - Serial port not specified\n"); 
+    return; 
+  }
 #endif
 
-if (!open_port(devname))  {
+  if (!openPort(devName))  {
 #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+    printf("\n - Serial port %s does not open\n", devName); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+    printf("\n - Serial port COM%s does not open\n", devName); 
 #endif
-   return; 
-}
-if (helloflag) hello(1);
-printf("\n");
+    return; 
+  }
+  if (helloFlag) {
+    hello(1);
+  }
+  printf("\n");
 
-// запуск команды из ключа -C, если есть
-if (strlen(scmdline) != 0) {
-  process_command(scmdline);
-  return;
-}
+  // Run the command specified by the -c option if available
+  if (strlen(sCmdLine) != 0) {
+    processCommand(sCmdLine);
+    return;
+  }
  
-// Основной цикл обработки команд
+// Main Command Processing Loop
 #ifndef WIN32
- // загрузка истории команд
- read_history("qcommand.history");
- write_history("qcommand.history");
+  // Load command history
+  readHistory("qcommand.history");
+  writeHistory("qcommand.history");
 #endif 
 
-for(;;)  {
+  for (;;) {
 #ifndef WIN32
- line=readline(">");
+    line = readLine(">");
 #else
- printf(">");
- fgets(line, sizeof(line), stdin);
+    printf(">");
+    fgets(line, sizeof(line), stdin);
 #endif
- if (line == 0) {
-    printf("\n");
-    return;
- }   
- if (strlen(line) <1) continue; // слишком короткая команда
+    if (line == 0) {
+      printf("\n");
+      return;
+    }   
+    if (strlen(line) < 1) {
+      continue; // Too short command
+    }
 #ifndef WIN32
- if (strcmp(line,oldcmdline) != 0) {
-   add_history(line); // в буфер ее для истории
-   append_history(1,"qcommand.history");
-   strcpy(oldcmdline,line);
- }  
+    if (strcmp(line, oldCmdLine) != 0) {
+      addHistory(line); // Add to the history buffer
+      appendHistory(1, "qcommand.history");
+      strcpy(oldCmdLine, line);
+    }  
 #endif
- process_command(line);
+    processCommand(line);
 #ifndef WIN32
- free(line);
+    free(line);
 #endif
-} 
+  } 
 }
