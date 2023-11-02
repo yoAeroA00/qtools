@@ -1,15 +1,15 @@
-@  Апплет для проверки функционирования загрузчика
+@ Applet for testing the loader's functionality
 @
-@ На входе:
-@ R0 = адрес начала данного кода (точки start)
-@ R1 = адрес ответного буфера
+@ Input:
+@ R0 = the address of the beginning of this code (start point)
+@ R1 = address of the response buffer
 @
-@ Возвращает ответ 12
+@ Returns response 12
 @
 
       .org    0	
-      .byte   0,0 	  @ выравнивающие байты - отрезаются от объектного модуля
-      .byte   0x11,0      @ код команды 11 и выравнивающий байт - это остается в объектном модуле
+      .byte   0,0 	  @ Alignment bytes - trimmed from the object module
+      .byte   0x11,0      @ Command code 11 and alignment byte - remains in the object module
 
 start: 
        MOV	R0,#0x12;

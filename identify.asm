@@ -1,38 +1,36 @@
-@  Апплет чтения слова идентификаци чипсета модема через команду 11
+@ Applet for reading the chipset identification word from the modem via command 11
 @
-@ На входе:
-@ R0 = адрес начала данного кода (точки start)
-@ R1 = адрес ответного буфера
-@
+@ Input:
+@ R0 = address of the beginning of this code (start point)
+@ R1 = address of the response buffer
 @
 
       .org    0	
-      .byte   0,0 	  @ выравнивающие байты - отрезаются от объектного модуля
-      .byte   0x11,0      @ код команды 11 и выравнивающий байт - это остается в объектном модуле
+      .byte   0,0 	  @ Alignment bytes - trimmed from the object module
+      .byte   0x11,0      @ Command code 11 and alignment byte - remains in the object module
 
 start: 
        PUSH	{R1}
-       MOV	R0,LR		@ адрес обработчика команды 11 в загрузчике
-       BIC	R0,#3           @ округляем по границе слова
-       ADD	R3,R0,#0xFF	@ граница поиска образца
-       LDR	R1,=0xDEADBEEF  @ образец для поиска
+       MOV	R0,LR		@ Address of the command 11 handler in the loader
+       BIC	R0,#3           @ Round to the word boundary
+       ADD	R3,R0,#0xFF	@ Boundary for pattern search
+       LDR	R1,=0xDEADBEEF  @ Pattern to search for
 floop:                          
-       LDR	R2,[R0],#4      @ очередное слово
-       CMP	R2,R1           @ это образец?
-       BEQ	found           @ да - нашли наконец
-       CMP	R0,R3           @ доехали до границы?
-       BCC	floop           @ нет - ищем дальше
-@ Образец не найден             
-       MOV	R0,#0           @ ответ 0 - образец не найден
+       LDR	R2,[R0],#4      @ Next word
+       CMP	R2,R1           @ Is this the pattern?
+       BEQ	found           @ Yes - finally found
+       CMP	R0,R3           @ Reached the boundary?
+       BCC	floop           @ No - continue searching
+@ Pattern not found
+       MOV	R0,#0           @ Response 0 - pattern not found
        B	done            
-@ Нашли образец
+@ Found the pattern
 found:                          
-       LDR	R0,[R0]         @ вынимаем код чипсета
+       LDR	R0,[R0]         @ Extract the chipset code
 done:             
        POP	{R1}
-       STRB	R0,[R1,#1]      @ сохраняем код в байте ответа 1
-       MOV	R0,#0xAA        @ AA - код ответа режима идентификации
-       STRB	R0,[R1]         @ в байт 0
-       MOV	R4,#2           @ размер ответа - 2 байта
+       STRB	R0,[R1,#1]      @ Save the code in byte 1
+       MOV	R0,#0xAA        @ AA - response code for identification mode
+       STRB	R0,[R1]         @ in byte 0
+       MOV	R4,#2           @ Response size - 2 bytes
        BX       LR              
-                               
