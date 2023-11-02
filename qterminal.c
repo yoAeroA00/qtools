@@ -1,209 +1,209 @@
 #include "include.h"
 
 //--------------------------------------------------------------------------------
-//* Терминальная программа для работы с командными портами модемов
+//* Terminal program for working with modem AT commands
 //--------------------------------------------------------------------------------
 
-unsigned int hexflag=0;         // hex-флаг
-unsigned int wrapperlen=0;      // размер строки (0 - без заворота строк)
-unsigned int waittime=1;        // время ожидания ответа
-unsigned int monitorflag=0;     // режим монитора
-unsigned int autoflag=1;        // режим автодобавления АТ
+unsigned int hexflag = 0;         // Hex mode flag
+unsigned int wrapperlen = 0;      // Line length (0 - no line wrap)
+unsigned int waittime = 1;        // Response waiting time
+unsigned int monitorflag = 0;     // Monitor mode
+unsigned int autoflag = 1;        // Automatic addition of 'AT' prefix
 char outcmd[500];
 char ibuf[6000];
 
 //*****************************************************
-//*   Получение и пеать ответа модема
+//*   Receive and print modem response
 //*****************************************************
-void read_responce() {
+void read_response() {
 
-int i;
-int dlen=0;  // полная длина ответа в буфере
-int rlen;    // длина полученной части ответа
-int clen;    // длина фрагмена ответа шириной в строку терминала 
+    int i;
+    int dlen = 0;  // Total response length in the buffer
+    int rlen;       // Length of the received part of the response
+    int clen;       // Length of the response fragment with the width of the terminal line
 
-// цикл получения частей ответа и сборки ответа в единый буфер
+    // Loop to receive response parts and assemble the response into a single buffer
+    do {
+        // usleep(waittime * 100); // Delay for response waiting - not needed, termios handles it automatically
+        rlen = qread(siofd, ibuf + dlen, 5000);   // Response of the command
+        if ((dlen + rlen) >= 5000) break; // Buffer overflow
+        dlen += rlen;
+    } while (rlen != 0);
 
-do {
-//  usleep(waittime*100); // задержка ожидания ответа - не нужна, termios сам ее отрабатывает
-  rlen=qread(siofd,ibuf+dlen,5000);   // ответ команды
-  if ((dlen+rlen) >= 5000) break; // переполнение буфера
-  dlen+=rlen;
-} while (rlen != 0);
-  
-  
-if (dlen == 0) return; // ответа нет
+    if (dlen == 0) return; // No response received
 
-// Получен ответ - выводим его на экран
-if (hexflag) {
-  printf("\n");rlen=-1;
-  dump(ibuf,dlen,0);
-  printf("\n");
-}
-else {
-  ibuf[dlen]=0; // конец строки
-  printf("\n");
-  if (wrapperlen == 0) puts(ibuf);
-  else {
-    clen=wrapperlen;
-    for(i=0;i<dlen;i+=wrapperlen) {
-       if ((dlen-i) < wrapperlen) clen=dlen-i; // длина последней строки
-       fwrite(ibuf+i,1,clen,stdout);
-       printf("\n");
-       fflush(stdout);
+    // Response received - display it on the screen
+    if (hexflag) {
+        printf("\n");
+        rlen = -1;
+        dump(ibuf, dlen, 0);
+        printf("\n");
     }
-  }
-}  
-fflush(stdout);
+    else {
+        ibuf[dlen] = 0; // End of the string
+        printf("\n");
+        if (wrapperlen == 0) puts(ibuf);
+        else {
+            clen = wrapperlen;
+            for (i = 0; i < dlen; i += wrapperlen) {
+                if ((dlen - i) < wrapperlen) clen = dlen - i; // Length of the last line
+                fwrite(ibuf + i, 1, clen, stdout);
+                printf("\n");
+                fflush(stdout);
+            }
+        }
+    }
+    fflush(stdout);
 }
 
 //*****************************************************
-//*  Отсылка команды в модем и получение результата   *
+//*  Send a command to the modem and get the result   *
 //*****************************************************
 void process_command(char* cmdline) {
 
-outcmd[0]=0;
+    outcmd[0] = 0;
 
-// автодобавление префикса АТ
-if ( autoflag &&
-    (((cmdline[0] != 'a') && (cmdline[0] != 'A')) ||
-    ((cmdline[1] != 't') && (cmdline[1] != 'T') && (cmdline[1] != '/'))) 
-   )  strcpy(outcmd,"AT");
-strcat(outcmd,cmdline);
-strcat(outcmd,"\r");   // добавляем CR в конец строки
+    // Automatic addition of the AT prefix
+    if (autoflag &&
+        (((cmdline[0] != 'a') && (cmdline[0] != 'A')) ||
+        ((cmdline[1] != 't') && (cmdline[1] != 'T') && (cmdline[1] != '/')))
+        )  strcpy(outcmd, "AT");
+    strcat(outcmd, cmdline);
+    strcat(outcmd, "\r");   // Add CR at the end of the string
 
-// отправка команды
-ttyflush();  // очистка выходного буфера
-qwrite(siofd,outcmd,strlen(outcmd));  // отсылка команды
-// 
-read_responce();
+    // Send the command
+    ttyflush();  // Clear the output buffer
+    qwrite(siofd, outcmd, strlen(outcmd));  // Send the command
+
+    read_response();
 }
 
 //@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
-void main(int argc,char* argv[]) {
-  
+void main(int argc, char* argv[]) {
+
 #ifndef WIN32
-char* line;
-char oldcmdline[200]="";
+    char* line;
+    char oldcmdline[200] = "";
 #else
-char line[200];
+    char line[200];
 #endif
-char scmdline[200]={0};
+    char scmdline[200] = {0};
 #ifndef WIN32
-char devname[50]="/dev/ttyUSB0";
+    char devname[50] = "/dev/ttyUSB0";
 #else
-char devname[50]="";
+    char devname[50] = "";
 #endif
-int opt;
+    int opt;
 
-while ((opt = getopt(argc, argv, "p:xw:c:hd:ma")) != -1) {
-  switch (opt) {
-   case 'h': 
-     printf("\nТерминальная программа для ввода АТ-команд в модем\n\n\
-Допустимы следующие ключи:\n\n\
--p <tty>       - указывает имя устройства последовательного порта\n\
--d <time>      - задает время ожидания ответа модема в ms\n\
--x             - выводит ответ модема в виде HEX-дампа\n\
--w <len>       - длина строки в режиме заворота длинных строк (0 - заворота нет)\n\
--m             - режим монитора порта\n\
--a             - запретить автодобавление букв AT в начало команды\n\
--c \"<команда>\" - запускает указанную команду и завершает работу\n");
-    return;
-     
-   case 'p':
-    strcpy(devname,optarg);
-    break;
+    while ((opt = getopt(argc, argv, "p:xw:c:hd:ma")) != -1) {
+        switch (opt) {
+        case 'h':
+            printf("\nTerminal program for entering AT commands into a modem\n\n\
+The following options are available:\n\n\
+-p <tty>       - Specifies the name of the serial port device\n\
+-d <time>      - Sets the modem response waiting time in ms\n\
+-x            - Displays the modem response in HEX dump format\n\
+-w <len>      - Line length for wrapping long lines (0 - no wrap)\n\
+-m            - Port monitor mode\n\
+-a            - Disables automatic addition of 'AT' prefix to the command\n\
+-c \"<command>\" - Runs the specified command and exits\n");
+            return;
 
-   case 'c':
-     strcpy(scmdline,optarg);
-     break;
+        case 'p':
+            strcpy(devname, optarg);
+            break;
 
-   case 'd':
-     sscanf(optarg,"%i",&waittime);
-     break;
-     
-   case 'w':
-     sscanf(optarg,"%i",&wrapperlen);
-     break;
+        case 'c':
+            strcpy(scmdline, optarg);
+            break;
 
-   case 'x':
-     hexflag=1;
-     break;
-     
-   case 'a':
-     autoflag=0;
-     break;
-     
-   case 'm':
-     monitorflag=1;
-     break;
-     
-   case '?':
-   case ':':  
-     return;
-  }
-}  
+        case 'd':
+            sscanf(optarg, "%i", &waittime);
+            break;
+
+        case 'w':
+            sscanf(optarg, "%i", &wrapperlen);
+            break;
+
+        case 'x':
+            hexflag = 1;
+            break;
+
+        case 'a':
+            autoflag = 0;
+            break;
+
+        case 'm':
+            monitorflag = 1;
+            break;
+
+        case '?':
+        case ':':
+            return;
+        }
+    }
 
 #ifdef WIN32
-if (*devname == '\0')
-{
-   printf("\n - Последовательный порт не задан\n"); 
-   return; 
-}
+    if (*devname == '\0')
+    {
+        printf("\n - Serial port not specified\n");
+        return;
+    }
 #endif
 
-if (!open_port(devname))  {
+    if (!open_port(devname)) {
 #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+        printf("\n - Serial port %s does not open\n", devname);
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+        printf("\n - Serial port COM%s does not open\n", devname);
 #endif
-   return; 
-}
+        return;
+    }
 
-// настрока таймаута порта
-port_timeout(waittime);
+    // Set port timeout
+    port_timeout(waittime);
 
-// режим монитора
-if (monitorflag) 
-  for (;;) read_responce();
+    // Monitor mode
+    if (monitorflag)
+        for (;;)
+            read_response();
 
-// запуск команды из ключа -C, если есть
-if (strlen(scmdline) != 0) {
-  process_command(scmdline);
-  return;
-}
- 
-// Основной цикл обработки команд
+    // Run a command from the -c option, if provided
+    if (strlen(scmdline) != 0) {
+        process_command(scmdline);
+        return;
+    }
+
+    // Main command processing loop
 #ifndef WIN32
- // загрузка истории команд
- read_history("qcommand.history");
- write_history("qcommand.history");
-#endif 
+    // Load command history
+    read_history("qcommand.history");
+    write_history("qcommand.history");
+#endif
 
-for(;;)  {
+    for (;;) {
 #ifndef WIN32
- line=readline(">");
+        line = readline(">");
 #else
- printf(">");
- fgets(line, sizeof(line), stdin);
+        printf(">");
+        fgets(line, sizeof(line), stdin);
 #endif
- if (line == 0) {
-    printf("\n");
-    return;
- }   
- if (strlen(line) == 0) continue; // пустая команда
+        if (line == 0) {
+            printf("\n");
+            return;
+        }
+        if (strlen(line) == 0) continue; // Empty command
 #ifndef WIN32
- if (strcmp(line,oldcmdline) != 0) {
-   add_history(line); // в буфер ее для истории
-   append_history(1,"qcommand.history");
-   strcpy(oldcmdline,line);
- }  
+        if (strcmp(line, oldcmdline) != 0) {
+            add_history(line); // Add to the command history buffer
+            append_history(1, "qcommand.history");
+            strcpy(oldcmdline, line);
+        }
 #endif
- process_command(line);
+        process_command(line);
 #ifndef WIN32
- free(line);
+        free(line);
 #endif
-} 
+    }
 }
