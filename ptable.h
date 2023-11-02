@@ -1,31 +1,29 @@
 #ifndef __PTABLE_H__
 #define __PTABLE_H__
 
-//####################################################################### 
-//#         Описание структуры таблицы разделов
+//#######################################################################
+//# Partition Table Structure Description
 //#######################################################################
 
-
-// Длина имени раздела. Она фиксирована, и имя не обязательно заканчивается на 0
-//
+// Length of the partition name. It is fixed, and the name is not required to end with 0
 #define FLASH_PART_NAME_LENGTH 16
 
-// Сигнатура системной таблицы разделов (таблицы чтения)
+// Signature of the system partition table (read table)
 #define FLASH_PART_MAGIC1     0x55EE73AA
 #define FLASH_PART_MAGIC2     0xE35EBDDB
 
-// Сигнатура пользовательской таблицы разделов (таблицы записи)
+// Signature of the user partition table (write table)
 #define FLASH_USR_PART_MAGIC1     0xAA7D1B9A
 #define FLASH_USR_PART_MAGIC2     0x1F7D48BC
 
-// Идентификатор размера раздела, расширяющегося в сторону конца флешки
+// Identifier for the size of a partition that extends towards the end of the flash
 #define FLASH_PARTITION_GROW  0xFFFFFFFF
 
-// Значения по умолчанию для атрибутов
+// Default attribute values
 #define FLASH_PART_FLAG_BASE  0xFF
 #define FLASH_PART_ATTR_BASE  0xFF
 
-/* Attributes for NAND paritions */
+/* Attributes for NAND partitions */
 #define FLASH_PART_HEX_SIZE   0xFE
 
 /* Attribute Masks */
@@ -38,102 +36,82 @@
 #define FLASH_PART_ATTRIBUTE2_SHFT 8
 #define FLASH_PART_ATTRIBUTE3_SHFT 16
 
-
 #define FLASH_MI_BOOT_SEC_MODE_NON_TRUSTED 0x00
 #define FLASH_MI_BOOT_SEC_MODE_TRUSTED     0x01
 
 #define FLASH_PART_ATTRIB( val, attr ) (((val) & (attr##_BMSK)) >> attr##_SHFT)
 
-
-// Описание атрибута 1
+// Description of Attribute 1
 typedef enum {
-  FLASH_PARTITION_DEFAULT_ATTRB = 0xFF,  // по умолчанию
-  FLASH_PARTITION_READ_ONLY = 0,         // только чтение
+  FLASH_PARTITION_DEFAULT_ATTRB = 0xFF,  // Default
+  FLASH_PARTITION_READ_ONLY = 0,         // Read-only
 } flash_partition_attrb_t;
 
-
-// Описание атрибута 2
+// Description of Attribute 2
 typedef enum {
-  // По умолчанию - обычный раздел (512-байтовые секторы)
-  FLASH_PARTITION_DEFAULT_ATTRB2 = 0xFF,
-
-  // То же самое - 512-байтовые секторы
-  FLASH_PARTITION_MAIN_AREA_ONLY = 0,
-
-  // Линуксовый формат - 516-байтовые секторы, часть spare с тегом защищена ЕСС
-  FLASH_PARTITION_MAIN_AND_SPARE_ECC,
-
-  
+  FLASH_PARTITION_DEFAULT_ATTRB2 = 0xFF,  // Default (512-byte sectors)
+  FLASH_PARTITION_MAIN_AREA_ONLY = 0,    // Main area only (512-byte sectors)
+  FLASH_PARTITION_MAIN_AND_SPARE_ECC,    // Linux format (516-byte sectors, some spare with ECC protection)
 } flash_partition_attrb2_t;
 
-
-// Описание атрибута 3
+// Description of Attribute 3
 typedef enum {
-  
-  // по умолчанию
-  FLASH_PART_DEF_ATTRB3 = 0xFF,
-
-  // разрешено обновление по имени раздела
-  FLASH_PART_ALLOW_NAMED_UPGRD = 0,
-
+  FLASH_PART_DEF_ATTRB3 = 0xFF,          // Default
+  FLASH_PART_ALLOW_NAMED_UPGRD = 0,      // Named upgrade allowed
 } flash_partition_attrb3_t;
 
-
 //*******************************************************************
-//* Описание раздела в системной таблица разделов (таблица чтения)
+// Partition Entry in the System Partition Table (Read Table)
 //*******************************************************************
 struct flash_partition_entry;
 typedef struct flash_partition_entry *flash_partentry_t;
 typedef struct flash_partition_entry *flash_partentry_ptr_type;
 
 struct flash_partition_entry {
-
-  // имя раздела
+  // Partition name
   char name[FLASH_PART_NAME_LENGTH];
 
-  // смещение в блоках до начала раздела
+  // Offset in blocks to the beginning of the partition
   uint32 offset;
 
-  // размер раздела в блоках
+  // Size of the partition in blocks
   uint32 len;
 
-  // атрибуты раздела
+  // Partition attributes
   uint8 attr1;
   uint8 attr2;
   uint8 attr3;
 
-  // Флешка, на которой находится раздел (0 - первичная, 1 - вторичная)
+  // Flash on which the partition resides (0 - primary, 1 - secondary)
   uint8 which_flash;
 };
 
 //*************************************************************************
-//* Описание раздела в пользовательской таблице разделов (таблица записи)
+// User Partition Entry in the User Partition Table (Write Table)
 //*************************************************************************
 struct flash_usr_partition_entry;
 typedef struct flash_usr_partition_entry *flash_usr_partentry_t;
 typedef struct flash_usr_partition_entry *flash_usr_partentry_ptr_type;
 
 struct flash_usr_partition_entry {
-
-  // имя раздела
+  // Partition name
   char name[FLASH_PART_NAME_LENGTH];
 
-  // Размер раздела в KB 
+  // Partition size in KB
   uint32 img_size;
 
-  // Размер резервируемой (на бедблоки) области раздела в КВ
+  // Size of the reserved (for bad blocks) area of the partition in KB
   uint16 padding;
 
-  // Флешка, на которой находится раздел (0 - первичная, 1 - вторичная)
+  // Flash on which the partition resides (0 - primary, 1 - secondary)
   uint16 which_flash;
 
-  // Атрибуты раздела (те же что и в таблице чтения)
+  // Partition attributes (same as in the read table)
   uint8 reserved_flag1;
   uint8 reserved_flag2;
   uint8 reserved_flag3;
 
-  uint8 reserved_flag4; 
-
+  uint8 reserved_flag4;
 };
 
 /*  Number of partition tables which will fit in 512 byte page, calculated
@@ -147,41 +125,38 @@ struct flash_usr_partition_entry {
  *     496/28 = 17.71 = round down to 16 entries
  */
 
-// Максимальное число разделов в таблице		
+// Maximum number of partitions in the table
 #define FLASH_NUM_PART_ENTRIES  32
 
 //*************************************************************************
-//* Структура системной таблицы разделов (таблицы чтения)
+// Structure of the System Partition Table (Read Table)
 //*************************************************************************
 struct flash_partition_table {
-
-  // Сигнатуры таблицы
+  // Table signatures
   uint32 magic1;
   uint32 magic2;
-  // Версия таблицы
+  // Table version
   uint32 version;
 
-  // Число определенных разделов
-  uint32 numparts;   
-  // Список разделов
+  // Number of defined partitions
+  uint32 numparts;
+  // List of partitions
   struct flash_partition_entry part[FLASH_NUM_PART_ENTRIES];
-//  int8 trash[112]; 
+  //int8 trash[112];
 };
 
-
 //*************************************************************************
-//* Структура пользовательской таблицы разделов (таблицы записи)
+// User Partition Table Structure
 //*************************************************************************
 struct flash_usr_partition_table {
-
-  // Сигнатуры таблицы
+  // Table signatures
   uint32 magic1;
   uint32 magic2;
-  // Версия таблицы
+  // Table version
   uint32 version;
-  // Число определенных разделов
-  uint32 numparts;   /* number of partition entries */
-  // Список разделов
+  // Number of defined partitions
+  uint32 numparts;  /* number of partition entries */
+  // List of partitions
   struct flash_usr_partition_entry part[FLASH_NUM_PART_ENTRIES];
 };
 
@@ -197,7 +172,6 @@ int part_len(int pn);
 int block_to_part(int block);
 
 extern struct flash_partition_table fptable;
-extern int validpart; // валидность таблицы разделов
+extern int validpart; // Validity of the partition table
 
 #endif // __PTABLE_H__
-
