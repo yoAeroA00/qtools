@@ -1,6 +1,6 @@
-Boot addresses of loaders for different chipsets
-(in hex, this is how the address is specified in the -a key of the qdload program):
-
+The loading addresses for loaders for various chipsets
+(in hexadecimal format, as specified in the -a key of the 'qdload' program)
+are as follows:
 
 
 NPRG8200   00100000
