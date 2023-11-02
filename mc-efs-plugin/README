@@ -1,30 +1,30 @@
-                  EFS-плагин для Midnight Commander
+EFS Plagin for Midnight Commander
                   
-Данный плагин позволяет работать с файловой системой EFS2 поключеного к USB-порту модема
-с помощью файловой панели Midnight Commander, как с обычным файловым деревом. Работа 
-производится с помощью утилиты qefs, являющейся составной частью комплекса qtools.
-Плагин реализован с помощью механизма виртуальных файловых систем extfs, являющегося
-частью MC.
-Порядок установки плагина:
+This plugin allows you to work with the EFS2 file system of the modem dotted to the USB port
+Using the Midnight Commander file panel, as with a conventional file wood. Job
+It is produced using the QEFS utility, which is an integral part of the Qtools complex.
+The plugin is implemented using the mechanism of virtual file systems EXTFS, which is
+part MC.
+Plugin installation procedure:
 
-1. Отредактировать в файле efs+ строку "qefs=", вписав в нее полный путь и имя
-программы qefs в вашей системе, а также, если надо, ключ -p с именем диагностического 
-порта модема (обычно он становится /dev/ttyUSB0, но не всегда).
+1. edit the EFS+ line "QEFS =" in the file, entering the full path and name into it
+QEFS programs in your system, as well as, if necessary, the key -p with the name of the diagnostic
+The modem port (usually it becomes /DEV /TTYUSB0, but not always).
 
-2. Скопировать файл efs+ в /usr/lib/mc/extfs.d/ (плагин будет доступен все пользователям)
-или в ~/.mc/extfs.d/ (будет доступен только текущему пользователю). Файлу должен быть
-установлен атрибут executable (+x).
+2. Copy the EFS+ in /USR/LIB/MC/EXTFS.D/ file (plugin will be available to all users)
+or in ~/.mc/extfs.d/(only the current user will be available). The file should be
+The executable attribute (+x) is installed.
 
-3. Вставить модем, убедиться, что в системе появился диагностический порт,
-запустить mc, и в его командной строке ввести команду:
+3. Insert a modem, make sure that a diagnostic port has appeared in the system,
+Launch MC, and enter the command in its command line:
 
-    cd efs://
+     CD EFS: //
     
-Вот и все. На текущей панели mc будет отображен корневой каталог EFS2. Можно копировать,
-удалять, просматривать файлы, а также создавать и удалять каталоги. Переименование пока
-не реализовано.
+That's all. On the current MC panel, the EFS2 root catalog will be displayed. You can copy
+Delete, view files, as well as create and delete catalogs. Renaming for now
+Not realized.
 
-Обратите внимание, что отработка команды cd efs:// может занять достаточно большое время.
-Все дело в том, что механизм extfs требует вычитать из модема полный листинг каталога
-со всеми подкаталогами, после чего mc будет работать уже с локальной копией каталога.
-Как обойти это ограничение - пока я не понял
+Please note that the development of the CD EFS: // command can take a fairly long time.
+The thing is that the EXTFS mechanism requires to subtract a full listing of a catalog from the modem
+With all the subcatals, after which the MC will work with a local copy of the catalog.
+How to get around this restriction - until I understand
