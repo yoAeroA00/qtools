@@ -1,89 +1,89 @@
 #include "include.h"
 
-// Установка параметров flash-контроллера
+// Set flash controller parameters
 //
 
 void main(int argc, char* argv[]) {
-  
+
 #ifndef WIN32
-char devname[20]="/dev/ttyUSB0";
+char devname[20] = "/dev/ttyUSB0";
 #else
-char devname[20]="";
+char devname[20] = "";
 #endif
 
-// локальные параметры для установки
-int lud=-1, lecc=-1, lspare=-1, lbad=-1;
-int sflag=0;
+// Local parameters for configuration
+int lud = -1, lecc = -1, lspare = -1, lbad = -1;
+int sflag = 0;
 int opt;
 int badloc;
 
 while ((opt = getopt(argc, argv, "hp:k:s:u:e:d:")) != -1) {
-  switch (opt) {
-   case 'h': 
-     printf("\n Утилита предназначена установки параметров NAND-контроллера\n\n\
-Допустимы следующие ключи:\n\n\
--p <tty> - указывает имя устройства последовательного порта для общения с загрузчиком\n\
--s nnn   - установка размера поля spare на сектор\n\
--u nnn   - установка размера поля данных сектора\n\
--e nnn   - установка размера поля ECC на сектор\n\
--d [L]xxx- установка маркера дефектных блоков на байт xxx (hex), L=U(user) или S(spare)\n\
+    switch (opt) {
+    case 'h':
+        printf("\nThis utility is intended for setting NAND controller parameters\n\n\
+The following options are available:\n\n\
+-p <tty> - Specifies the name of the serial port device for communication with the bootloader\n\
+-s nnn   - Set the size of the spare field on a sector\n\
+-u nnn   - Set the size of the data field of a sector\n\
+-e nnn   - Set the size of the ECC field on a sector\n\
+-d [L]xxx- Set the marker for defective blocks to byte xxx (hex), L=U(user) or S(spare)\n\
 ");
-    return;
-     
-   case 'p':
-    strcpy(devname,optarg);
-    break;
+        return;
 
-   case 'k':
-    define_chipset(optarg);
-    break;
-    
-   case 's':
-     sscanf(optarg,"%d",&lspare);
-     sflag=1;
-     break;
+    case 'p':
+        strcpy(devname, optarg);
+        break;
 
-   case 'u':
-     sscanf(optarg,"%d",&lud);
-     sflag=1;
-     break;
+    case 'k':
+        define_chipset(optarg);
+        break;
 
-   case 'e':
-     sscanf(optarg,"%d",&lecc);
-     sflag=1;
-     break;
-    
-   case 'd':
-     parse_badblock_arg(optarg, &lbad, &badloc);
-     sflag=1;
-     break;
-    
-   case '?':
-   case ':':  
-     return;
-  }
-}  
+    case 's':
+        sscanf(optarg, "%d", &lspare);
+        sflag = 1;
+        break;
+
+    case 'u':
+        sscanf(optarg, "%d", &lud);
+        sflag = 1;
+        break;
+
+    case 'e':
+        sscanf(optarg, "%d", &lecc);
+        sflag = 1;
+        break;
+
+    case 'd':
+        parse_badblock_arg(optarg, &lbad, &badloc);
+        sflag = 1;
+        break;
+
+    case '?':
+    case ':':
+        return;
+    }
+}
 
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
-   return; 
+    printf("\n - Serial port is not specified\n");
+    return;
 }
 #endif
 
 if (!open_port(devname))  {
- #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+#ifndef WIN32
+    printf("\n - Serial port %s cannot be opened\n", devname);
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+    printf("\n - Serial port COM%s cannot be opened\n", devname);
 #endif
-  return; 
+    return;
 }
 
 if (!sflag) {
- hello(1);
- return;
+    hello(1);
+    return;
 }
 
 hello(0);
@@ -91,5 +91,5 @@ hello(0);
 if (lspare != -1) set_sparesize(lspare);
 if (lud != -1) set_udsize(lud);
 if (lecc != -1) set_eccsize(lecc);
-if (lbad != -1) set_badmark_pos (lbad, badloc);
-} 
+if (lbad != -1) set_badmark_pos(lbad, badloc);
+}
