@@ -1,4 +1,4 @@
-#ifdef WIN32
+#ifndef WIN64
 #define _USE_32BIT_TIME_T
 #endif
 #include "include.h"
