@@ -1,6 +1,6 @@
 //
-//  Программа предназначена для добавления идентификационного блока в конец загрузчика.
-//  Блок содержит информацию о коде чипсета и адресе загрузки
+// This program is designed to add an identification block to the end of a bootloader.
+// The block contains information about the chipset code and the loading address.
 //
 //
 #include <stdio.h>
@@ -8,71 +8,69 @@
 void main(int argc, char* argv[]) {
 
 FILE* ldr;
-unsigned int code,adr;
+unsigned int code, adr;
 unsigned int i;
 
   
-if ((argc!=2)&&(argc!=4)) {
-  printf("\n Формат командной строки:\n\
-  %s  <файл загрузчика> <код чипсета> <адрес загрузки> - запись блока идентификации в загрузчик\n\
-  %s  <файл загрузчика> - просмотр блока идентификации\n",argv[0],argv[0]);
+if ((argc != 2) && (argc != 4)) {
+  printf("\n Command line format:\n\
+  %s  <bootloader file> <chipset code> <loading address> - write an identification block to the bootloader\n\
+  %s  <bootloader file> - view the identification block\n", argv[0], argv[0]);
   return;
 }
 
-ldr=fopen(argv[1],"r+");
+ldr = fopen(argv[1], "r+");
 if (ldr == 0) {
-  printf("\n Ошибка открытия файла %s\n",argv[1]);
+  printf("\n Error opening the file %s\n", argv[1]);
   return;
 }
 
-//------------ режим просмотра блока идентификации ---------------
+//------------ View identification block mode ---------------
 if (argc == 2) {
-  fseek(ldr,-12,SEEK_END);
-  fread(&i,1,4,ldr);
+  fseek(ldr, -12, SEEK_END);
+  fread(&i, 1, 4, ldr);
   if (i != 0xdeadbeef) {
-     printf("\n Загрузчик не содержит в себе блок идентификации\n");
+     printf("\n The bootloader does not contain an identification block\n");
      fclose(ldr);
      return;
    }
-  fread(&code,4,1,ldr);
-  fread(&adr,4,1,ldr);
+  fread(&code, 4, 1, ldr);
+  fread(&adr, 4, 1, ldr);
   fclose(ldr);
-  printf("\n Параметры идентификации загрузчика %s:",argv[1]);
-  printf("\n * Код чипсета = 0x%x",code);
-  printf("\n * Адрес загрузки = 0x%08x\n\n",adr);
+  printf("\n Bootloader identification parameters for %s:", argv[1]);
+  printf("\n * Chipset code = 0x%x", code);
+  printf("\n * Loading address = 0x%08x\n\n", adr);
   return;
 }
 
-//----------- Режим записи блока идентификации ---------------
+//----------- Write identification block mode ---------------
 
-sscanf(argv[2],"%x",&code);
+sscanf(argv[2], "%x", &code);
 if (code == 0) {
-  printf("\n Неправильный код чипсета\n");
+  printf("\n Incorrect chipset code\n");
   fclose(ldr);
   return;
 }
 
-sscanf(argv[3],"%x",&adr);
+sscanf(argv[3], "%x", &adr);
 if (adr == 0) {
-  printf("\n Неправильный адрес\n");
+  printf("\n Incorrect address\n");
   fclose(ldr);
   return;
 }
 
-
-fseek(ldr,-12,SEEK_END);
-fread(&i,1,4,ldr);
+fseek(ldr, -12, SEEK_END);
+fread(&i, 1, 4, ldr);
 if (i == 0xdeadbeef) {
-  printf("\n Загрузчик уже содержит в себе блок идентификации - перезаписываем\n");
+  printf("\n The bootloader already contains an identification block - overwriting\n");
 }
 else {
   fclose(ldr);
-  ldr=fopen(argv[1],"a");
-  i=0xdeadbeef;
-  fwrite(&i,4,1,ldr);
+  ldr = fopen(argv[1], "a");
+  i = 0xdeadbeef;
+  fwrite(&i, 4, 1, ldr);
 }  
-fwrite(&code,4,1,ldr);
-fwrite(&adr,4,1,ldr);
+fwrite(&code, 4, 1, ldr);
+fwrite(&adr, 4, 1, ldr);
 fclose(ldr);
 }
-
