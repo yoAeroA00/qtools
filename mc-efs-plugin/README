@@ -1,30 +1,22 @@
-EFS Plagin for Midnight Commander
-                  
-This plugin allows you to work with the EFS2 file system of the modem dotted to the USB port
-Using the Midnight Commander file panel, as with a conventional file wood. Job
-It is produced using the QEFS utility, which is an integral part of the Qtools complex.
-The plugin is implemented using the mechanism of virtual file systems EXTFS, which is
-part MC.
-Plugin installation procedure:
+				EFS Plugin for Midnight Commander
 
-1. edit the EFS+ line "QEFS =" in the file, entering the full path and name into it
-QEFS programs in your system, as well as, if necessary, the key -p with the name of the diagnostic
-The modem port (usually it becomes /DEV /TTYUSB0, but not always).
+This plugin allows you to work with the EFS2 filesystem connected to a modem's USB port using the Midnight Commander file panel as if it were a regular file tree.
+The operation is performed using the "qefs" utility, which is a part of the qtools suite. The plugin is implemented using the extfs virtual filesystem mechanism,
+which is part of MC (Midnight Commander).
 
-2. Copy the EFS+ in /USR/LIB/MC/EXTFS.D/ file (plugin will be available to all users)
-or in ~/.mc/extfs.d/(only the current user will be available). The file should be
-The executable attribute (+x) is installed.
+Here are the installation steps for the plugin:
 
-3. Insert a modem, make sure that a diagnostic port has appeared in the system,
-Launch MC, and enter the command in its command line:
+1. Edit the "qefs=" line in the "efs+" file by specifying the full path and name of the "qefs" program in your system. If necessary, include the "-p" flag with the name
+of the modem's diagnostic port (usually it becomes /dev/ttyUSB0, but not always).
 
-     CD EFS: //
+2. Copy the "efs+" file to either /usr/lib/mc/extfs.d/ (to make the plugin available to all users) or ~/.mc/extfs.d/ (to make it available only to the current user).
+Ensure that the file has the executable attribute (+x).
+
+3. Insert the modem, make sure the diagnostic port appears in the system, launch Midnight Commander, and in its command line, enter the following command:
+
+    cd efs://
     
-That's all. On the current MC panel, the EFS2 root catalog will be displayed. You can copy
-Delete, view files, as well as create and delete catalogs. Renaming for now
-Not realized.
+That's it. The current panel in MC will display the root directory of EFS2. You can copy, delete, view files, and create/delete directories. Note that renaming is not yet implemented.
 
-Please note that the development of the CD EFS: // command can take a fairly long time.
-The thing is that the EXTFS mechanism requires to subtract a full listing of a catalog from the modem
-With all the subcatals, after which the MC will work with a local copy of the catalog.
-How to get around this restriction - until I understand
+Please be aware that executing the cd efs:// command may take a considerable amount of time. This is because the extfs mechanism requires reading the full directory listing from
+the modem with all subdirectories. Afterward, MC will work with a local copy of the directory. How to work around this limitation is not currently known.
