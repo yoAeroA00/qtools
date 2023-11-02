@@ -1,4 +1,4 @@
-CC       = i686-w64-mingw32-gcc
+CC       = x86_64-w64-mingw32-gcc
 CFLAGS   = -O2 -Wno-unused-result -Wunused -fexec-charset=cp866
 
 OBJS     = hdlc.o qcio.o memio.o chipconfig.o utils.o
