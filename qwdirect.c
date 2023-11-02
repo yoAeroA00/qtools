@@ -9,7 +9,7 @@ int test_empty(unsigned char* srcbuf)
 }
 
 //**********************************************************
-//*   Настройка чипсета на линуксовый формат раздела флешки
+//*   Set the chipset to Linux format for flash partitions
 //**********************************************************
 void set_linux_format() {
   
@@ -18,27 +18,23 @@ unsigned int sparnum, cfgecctemp;
 if (nand_ecc_cfg != 0xffff) cfgecctemp=mempeek(nand_ecc_cfg);
 else cfgecctemp=0;
 sparnum = 6-((((cfgecctemp>>4)&3)?(((cfgecctemp>>4)&3)+1)*4:4)>>1);
-// Для ECC- R-S
-if (! (is_chipset("MDM9x25") || is_chipset("MDM9x3x") || is_chipset("MDM9x4x"))) set_blocksize(516,1,10); // data - 516, spare - 1 байт, ecc - 10
-// Для ECC - BCH
+// For ECC- R-S
+if (! (is_chipset("MDM9x25") || is_chipset("MDM9x3x") || is_chipset("MDM9x4x"))) set_blocksize(516,1,10); // data - 516, spare - 1 byte, ecc - 10
+// For ECC - BCH
 else {
-	set_udsize(516); // data - 516, spare - 2 или 4 байта
+	set_udsize(516); // data - 516, spare - 2 or 4 bytes
 	set_sparesize(sparnum);
 }
-}  
-  
+}
 
 //*******************************************
-//@@@@@@@@@@@@ Головная программа
+//@@@@@@@@@@@@ Main program
 void main(int argc, char* argv[]) {
   
-
-			     
-unsigned char datacmd[1024]; // секторный буфер
-			     
-unsigned char srcbuf[8192]; // буфер страницы 
-unsigned char membuf[1024]; // буфер верификации
-unsigned char databuf[8192], oobuf[8192]; // буферы сектора данных и ООВ
+unsigned char datacmd[1024]; // Sector buffer
+unsigned char srcbuf[8192]; // Page buffer
+unsigned char membuf[1024]; // Verification buffer
+unsigned char databuf[8192], oobuf[8192]; // Data and OOB sector buffers
 unsigned int fsize;
 FILE* in;
 int vflag=0;
@@ -59,7 +55,7 @@ unsigned int bsize;
 unsigned int fileoffset=0;
 int badflag;
 int uxflag=0, ucflag=0, usflag=0, umflag=0, ubflag=0;
-int wmode=0; // режим записи
+int wmode=0; // Write mode
 int readlen;
 
 #define w_standart 0
@@ -71,30 +67,30 @@ int readlen;
 while ((opt = getopt(argc, argv, "hp:k:b:a:f:vc:z:l:o:u:s")) != -1) {
   switch (opt) {
    case 'h': 
-    printf("\n  Утилита предназначена для записи сырого образа flash через регистры контроллера\n\
-Допустимы следующие ключи:\n\n\
--p <tty>  - указывает имя устройства последовательного порта для общения с загрузчиком\n\
--k #      - код чипсета (-kl - получить список кодов)\n\
--b #      - начальный номер блока для записи \n\
--a #      - номер блока на флешке до котороко можно записывать (по умолчанию до конца флешки)\n\
--f <x>    - выбор формата записи:\n\
-        -fs (по умолчанию) - запись только секторов данных\n\
-        -fl - запись только секторов данных в линуксовом формате\n\
-        -fy - запись yaffs2-образов\n\
-	-fi - запись сырого образа данные+OOB, как есть, без пересчета ЕСС\n\
-	-fo - на входе - только данные, на флешке - линуксовый формат\n");
+    printf("\n  The utility is intended for writing a raw flash image through controller registers\n\
+Available options are:\n\n\
+-p <tty>  - specifies the name of the serial port device for communication with the bootloader\n\
+-k #      - chipset code (-kl - get the list of codes)\n\
+-b #      - starting block number for writing\n\
+-a #      - block number on the flash until which writing is allowed (default is the end of the flash)\n\
+-f <x>    - choose the write format:\n\
+        -fs (default) - write only data sectors\n\
+        -fl - write data sectors in Linux format\n\
+        -fy - write yaffs2 images\n\
+	-fi - write a raw image with data+OOB as is, without ECC recalculation\n\
+	-fo - data-only input and Linux format on the flash\n");
 printf("\
--s        - пропускать страницы, содержащие только байты 0xff (необходимо при записи ubi оразов)\n\
--z #      - размер OOB на одну страницу, в байтах (перекрывает автоопределенный размер)\n\
--l #      - число записываемых блоков, по умолчанию - до конца входного файла\n\
--o #      - смещение в блоках в исходном файле до начала записываемого участка\n\
--ux       - отключить аппаратный контроль дефектных блоков\n\
--us       - игнорировать признаки дефектных блоков, отмеченные во входном файле\n\
--uc       - симулировать дефектные блоки входного файла\n\
--um       - проверять соответствие дефектных блоков файла и флешки\n\
--ub       - не проверять дефектность блоков флешки перед записью (ОПАСНО!)\n\
--v        - проверка записанных данных после записи\n\
--c n      - только стереть n блоков, начиная от начального.\n\
+-s        - skip pages containing only 0xff bytes (necessary for writing ubi images)\n\
+-z #      - OOB size per page in bytes (overrides auto-detected size)\n\
+-l #      - number of blocks to write, default - until the end of the input file\n\
+-o #      - offset in blocks in the source file to the beginning of the writable area\n\
+-ux       - disable hardware control of bad blocks\n\
+-us       - ignore bad block markers in the input file\n\
+-uc       - simulate bad blocks in the input file\n\
+-um       - check for consistency of bad blocks in the file and flash\n\
+-ub       - do not check the flash block's badness before writing (DANGEROUS!)\n\
+-v        - verify the written data after writing\n\
+-c n      - only erase n blocks, starting from the initial block.\n\
 \n");
     return;
     
@@ -109,7 +105,7 @@ printf("\
    case 'c':
      sscanf(optarg,"%x",&cflag);
      if (cflag == 0) {
-       printf("\n Неправильно указан аргумент ключа -с");
+       printf("\n Invalid argument for the -c option");
        return;
      }  
      break;
@@ -165,7 +161,7 @@ printf("\
 	break;
 	
        default:
-	printf("\n Неправильное значение ключа -f\n");
+	printf("\n Invalid value for the -f option\n");
 	return;
      }
      break;
@@ -193,7 +189,7 @@ printf("\
 	 break;
 	 
        default:
-	printf("\n Неправильное значение ключа -u\n");
+	printf("\n Invalid value for the -u option\n");
 	return;
      }
      break;
@@ -205,38 +201,38 @@ printf("\
 }  
 
 if (uxflag+usflag+ucflag+umflag > 1) {
-  printf("\n Ключи -ux, -us, -uc, -um несовместимы между собой\n");
+  printf("\n Options -ux, -us, -uc, -um are not compatible with each other\n");
   return;
 }
 
 if (uxflag+ubflag+umflag > 1) {
-  printf("\n Ключи -ux, -ub, -um несовместимы между собой\n");
+  printf("\n Options -ux, -ub, -um are not compatible with each other\n");
   return;
 }
 
 if (uxflag+ubflag > 1) {
-  printf("\n Ключи -ux и -ub несовместимы между собой\n");
+  printf("\n Options -ux, -ub, -um are not compatible with each other\n");
   return;
 }
 
 if (uxflag && (wmode != w_image)) {
-  printf("\n Ключ -ux допустим только в режиме -fi\n");
+  printf("\n Option -ux is only valid in -fi mode\n");
   return;
 }
 
 #ifdef WIN32
 if (*devname == '\0')
 {
-   printf("\n - Последовательный порт не задан\n"); 
+   printf("\n Serial port is not specified\n"); 
    return; 
 }
 #endif
 
 if (!open_port(devname))  {
 #ifndef WIN32
-   printf("\n - Последовательный порт %s не открывается\n", devname); 
+   printf("\n Serial port %s cannot be opened\n", devname); 
 #else
-   printf("\n - Последовательный порт COM%s не открывается\n", devname); 
+   printf("\n Serial port COM%s cannot be opened\n", devname); 
 #endif
    return; 
 }
@@ -244,18 +240,18 @@ if (!open_port(devname))  {
 if (!cflag) { 
  in=fopen(argv[optind],"rb");
  if (in == 0) {
-   printf("\nОшибка открытия входного файла\n");
+   printf("\nError opening the input file\n");
    return;
  }
  
 }
-else if (optind < argc) {// в режиме стирания входной файл не нужен
-  printf("\n С ключом -с недопустим входной файл\n");
+else if (optind < argc) {// No input file is needed in erase mode
+  printf("\n The -c option is not compatible with an input file\n");
   return;
 }
 
 if(stopblock <= startblock) {
-  printf("\n Значение ключа -b должен быть меньше значения ключа -a\n");
+  printf("\n The -b option value should be less than the -a option value\n");
   return;
 }
 
@@ -265,359 +261,357 @@ if(stopblock == -1)
     stopblock = maxblock;
 
 if(maxblock < startblock) {
-  printf("\n Ошибка, значение ключа -b больше размера flash памяти\n");
+  printf("\n Error, the -b option value is greater than the flash memory size\n");
   return;
 }
 
 if(maxblock < stopblock) {
-  printf("\n Ошибка, значение ключа -a больше размера flash памяти\n");
+  printf("\n Error, the -a option value is greater than the flash memory size\n");
   return;
 }
 
-if ((wmode == w_standart)||(wmode == w_linux)) oobsize=0; // для входных файлов без OOB
-oobsize/=spp;   // теперь oobsize - это размер OOB на один сектор
+if ((wmode == w_standart)||(wmode == w_linux)) oobsize=0; // For input files without OOB
+oobsize/=spp;   // Now oobsize is the size of OOB per sector
 
-// Сброс контроллера nand
+// Reset the NAND controller
 nand_reset();
 
-// Сохранение значений реистров контроллера
-cfg0bak=mempeek(nand_cfg0);
-cfg1bak=mempeek(nand_cfg1);
-cfgeccbak=mempeek(nand_ecc_cfg);
+// Saving the controller register values
+cfg0bak = mempeek(nand_cfg0);
+cfg1bak = mempeek(nand_cfg1);
+cfgeccbak = mempeek(nand_ecc_cfg);
 
 //-------------------------------------------
-// режим стирания
+// Erase mode
 //-------------------------------------------
 if (cflag) {
-  if ((startblock+cflag) > stopblock) cflag=stopblock-startblock;
+  if ((startblock + cflag) > stopblock) cflag = stopblock - startblock;
   printf("\n");
-  for (block=startblock;block<(startblock+cflag);block++) {
-    printf("\r Стирание блока %03x",block); 
-    if (!ubflag) 
+  for (block = startblock; block < (startblock + cflag); block++) {
+    printf("\r Erasing block %03x", block);
+    if (!ubflag)
       if (check_block(block)) {
-	printf(" - badblock, стирание запрещено\n");
-	continue; 
-      }	
+        printf(" - bad block, erasure prohibited\n");
+        continue;
+      }
     block_erase(block);
-  }  
+  }
   printf("\n");
   return;
 }
 
-//ECC on-off
+// ECC on-off
 if (wmode != w_image) {
-  mempoke(nand_ecc_cfg,mempeek(nand_ecc_cfg)&0xfffffffe); 
-  mempoke(nand_cfg1,mempeek(nand_cfg1)&0xfffffffe); 
+  mempoke(nand_ecc_cfg, mempeek(nand_ecc_cfg) & 0xfffffffe);
+  mempoke(nand_cfg1, mempeek(nand_cfg1) & 0xfffffffe);
 }
 else {
-  mempoke(nand_ecc_cfg,mempeek(nand_ecc_cfg)|1); 
-  mempoke(nand_cfg1,mempeek(nand_cfg1)|1); 
+  mempoke(nand_ecc_cfg, mempeek(nand_ecc_cfg) | 1);
+  mempoke(nand_cfg1, mempeek(nand_cfg1) | 1);
 }
-  
-// Определяем размер файла
-if (wmode == w_linout) bsize=pagesize*ppb; // для этого режима файл не содержит данных OOB, но требуется запись в OOB
-else bsize=(pagesize+oobsize*spp)*ppb;  // размер в байтах полного блока флешки, с учетом ООВ
-fileoffset*=bsize; // переводим смещение из блоков в байты
-fseek(in,0,SEEK_END);
-i=ftell(in);
-if (i<=fileoffset) {
-  printf("\n Смещение %i выходит за границу файла\n",fileoffset/bsize);
+
+// Determine the file size
+if (wmode == w_linout) bsize = pagesize * ppb; // For this mode, the file does not contain OOB data, but OOB writing is required
+else bsize = (pagesize + oobsize * spp) * ppb;  // Size in bytes of the complete flash block, including OOB
+fileoffset *= bsize; // Convert the offset from blocks to bytes
+fseek(in, 0, SEEK_END);
+i = ftell(in);
+if (i <= fileoffset) {
+  printf("\n Offset %i exceeds the file boundaries\n", fileoffset / bsize);
   return;
 }
-i-=fileoffset; // отрезаем от длины файла размер пропускаемого участка
-fseek(in,fileoffset,SEEK_SET); // встаем на начало записываемого участка
-fsize=i/bsize; // размер в блоках
-if ((i%bsize) != 0) fsize++; // округляем вверх до границы блока
+i -= fileoffset; // Trim the size of the file based on the skipped portion
+fseek(in, fileoffset, SEEK_SET); // Move to the beginning of the writeable section
+fsize = i / bsize; // Size in blocks
+if ((i % bsize) != 0) fsize++; // Round up to the block boundary if necessary
 
-if (flen == 0) flen=fsize;
-else if (flen>fsize) {
-  printf("\n Указанная длина %u превосходит размер файла %u\n",flen,fsize);
+if (flen == 0) flen = fsize;
+else if (flen > fsize) {
+  printf("\n The specified length %u exceeds the file size %u\n", flen, fsize);
   return;
-} 
-  
-printf("\n Запись из файла %s, стартовый блок %03x, размер %03x\n Режим записи: ",argv[optind],startblock,flen);
+}
 
+printf("\n Writing from the file %s, start block %03x, size %03x\n Write mode: ", argv[optind], startblock, flen);
 
 switch (wmode) {
   case w_standart:
-    printf("только данные, стандартный формат\n");
+    printf("data only, standard format\n");
     break;
-    
-  case w_linux: 
-    printf("только данные, линуксовый формат на входе\n");
+
+  case w_linux:
+    printf("data only, Linux format on input\n");
     break;
-    
-  case w_image: 
-    printf("сырой образ без расчета ЕСС\n");
-    printf(" Формат данных: %u+%u\n",sectorsize,oobsize); 
+
+  case w_image:
+    printf("raw image without ECC calculation\n");
+    printf(" Data format: %u+%u\n", sectorsize, oobsize);
     break;
-    
-  case w_yaffs: 
-    printf("образ yaffs2\n");
+
+  case w_yaffs:
+    printf("YAFFS2 image\n");
     set_linux_format();
     break;
 
-  case w_linout: 
-    printf("линуксовый формат на флешке\n");
+  case w_linout:
+    printf("Linux format on the flash\n");
     set_linux_format();
     break;
-}   
-    
+}
+
 port_timeout(1000);
 
-// цикл по блокам
-if ((startblock+flen) > stopblock) flen=stopblock-startblock;
-for(block=startblock;block<(startblock+flen);block++) {
-  // проверяем, если надо, дефектность блока
-  badflag=0;
-  if (!uxflag && !ubflag)  badflag=check_block(block);
-  // целевой блок - дефектный
+// Block loop
+if ((startblock + flen) > stopblock) flen = stopblock - startblock;
+for (block = startblock; block < (startblock + flen); block++) {
+  // Check for block defects if needed
+  badflag = 0;
+  if (!uxflag && !ubflag)  badflag = check_block(block);
+  // Target block is defective
   if (badflag) {
-//    printf("\n %x - badflag\n",block);
-    // пропускаем дефектный блок и идем дальше
+	//printf("\n %x - badflag\n",block);
+    // Skip the defective block and continue
     if (!ubflag && !(umflag || ucflag)) {
-      printf("\r Блок %x дефектный - пропускаем\n",block);
-      if(startblock+flen == stopblock)
-          printf("\n Внимание: последний блок файла не будет записан, выход за границу области записи\n\n");
+      printf("\r Block %x is defective - skipping\n", block);
+      if (startblock + flen == stopblock)
+          printf("\n Attention: the last block of the file will not be written, exceeding the write area boundary\n\n");
       else
-          flen++;   // сдвигаем границу завершения вводного файла - блок мы пропустили, данные раздвигаются
+          flen++;   // Shift the end boundary of the input file - we skipped a block, data is spreading
       continue;
     }
   }
-  // стираем блок
+  // Erase the block
   if (!badflag || ubflag) {
     block_erase(block);
   }
 
   bch_reset();
 
-  // цикл по страницам
-  for(page=0;page<ppb;page++) {
+  // Page loop
+  for (page = 0; page < ppb; page++) {
 
-    memset(oobuf,0xff,sizeof(oobuf));
-    memset(srcbuf,0xff,pagesize); // заполняем буфер FF для чтения неполных страниц
-    // читаем весь дамп страницы
-    if (wmode == w_linout) readlen=fread(srcbuf,1,pagesize,in);
-    else readlen=fread(srcbuf,1,pagesize+(spp*oobsize),in);
-    if (readlen == 0) goto endpage;  // 0 - все данные из файла прочитаны
+    memset(oobuf, 0xff, sizeof(oobuf));
+    memset(srcbuf, 0xff, pagesize); // Fill the buffer with FF for reading incomplete pages
+    // Read the entire page dump
+    if (wmode == w_linout) readlen = fread(srcbuf, 1, pagesize, in);
+    else readlen = fread(srcbuf, 1, pagesize + (spp * oobsize), in);
+    if (readlen == 0) goto endpage;  // 0 - all data from the file has been read
 
-    if(sflag && test_empty(srcbuf))
+    if (sflag && test_empty(srcbuf))
     {
-        //printf("\n Пропущена пустая страница: блок %x, страница %x\n",block,page);
+        //printf("\n Skipped empty page: block %x, page %x\n", block, page);
         continue;
     }
 
-    // srcbuf прочитан - проверяем, не бедблок ли там
+    // srcbuf is read - check if it's a bad block
     if (test_badpattern(srcbuf)) {
-        // там действительно бедблок
+        // It's indeed a bad block
         if (usflag)
         {
-            // если сказано писать как есть, пишим как есть
+            // If it's said to write as is, we write it as is
             if(page == 0)
-                printf("\r Блок %x - признак бэдблока записан \"как есть\", продолжаем запись\n",block);
+                printf("\r Block %x - bad block flag written \"as is,\" continue writing\n", block);
         }
         else if (!badflag)
         {
-            // входной блок не соответствует бэдблоку на флешке, либо нам всё равно что на флешке
-            if(ucflag)
+            // The input block doesn't match the bad block on the flash, or we don't care what's on the flash
+            if (ucflag)
             {
                 if(page == 0)
                 {
-                    // создание бедблока
-                    // todo: откат в случаи ошибки
+                    // Creating a bad block
+                    // todo: rollback in case of error
                     mark_bad(block);
-                    printf("\r Блок %x отмечен как дефектный в соответствии с входным файлом!\n",block);
+                    printf("\r Block %x marked as defective according to the input file!\n", block);
                 }
                 continue;
             }
             else if (umflag)
             {
-                printf("\r Блок %x: на flash дефект не обнаружен, завершаем работу!\n",block);
+                printf("\r Block %x: no defect found on flash, exiting!\n", block);
                 return;
             }
             else
             {
 	        if (page == 0)
-                    printf("\r Обнаружен признак дефектного блока во входном дампе - пропускаем\n");
-	        continue;  // пропускаем этот блок, постранично
+                    printf("\r Bad block flag detected in the input dump - skipping\n");
+	        continue;  // Skip this block, page by page
             }
         }
         else
         {
-            // если нам не плевать на бэдблоки флешки и бэдблок действительно есть
+            // If we don't care about flash bad blocks and there is a bad block indeed
             if (page == 0)
-                printf("\r Блок %x - дефекты соответствуют, продолжаем запись\n",block);
-	    continue;  // пропускаем этот блок, постранично
+                printf("\r Block %x - defects match, continue writing\n", block);
+	    continue;  // Skip this block, page by page
         }
     }
+if (badflag) {
+    printf("\r Block %x: Unexpected defect detected on the flash, exiting!\n", block);
+    return;
+}
 
-    if (badflag)
-    {
-	printf("\r Блок %x: на flash обнаружен неожиданный дефект, завершаем работу!\n",block);
-	return;
+// Process the dump into buffers
+switch (wmode) {
+  case w_standart:
+  case w_linux:
+  case w_image:
+    // For all modes except yaffs and linout - input file format is 512+oob
+    for (i = 0; i < spp; i++) {
+      memcpy(databuf + sectorsize * i, srcbuf + (sectorsize + oobsize) * i, sectorsize);
+      if (oobsize != 0) memcpy(oobuf + oobsize * i, srcbuf + (sectorsize + oobsize) * i + sectorsize, oobsize);
     }
+    break;
 
-    // разбираем дамп по буферам
-    switch (wmode) {
-      case w_standart:
-      case w_linux:
-      case w_image:
-      // для всех режимов, кроме yaffs и linout - формат входного файла 512+obb
-      for (i=0;i<spp;i++) {
-		memcpy(databuf+sectorsize*i,srcbuf+(sectorsize+oobsize)*i,sectorsize);
-		if (oobsize != 0) memcpy(oobuf+oobsize*i,srcbuf+(sectorsize+oobsize)*i+sectorsize,oobsize);
-     }  
-	break;
-	 
-      case w_yaffs:
-      // для режима yaffs - формат входного файла pagesize+obb 
-		memcpy(databuf,srcbuf,sectorsize*spp);
-		memcpy(oobuf,srcbuf+sectorsize*spp,oobsize*spp);
+  case w_yaffs:
+    // For yaffs mode - input file format is pagesize+oob
+    memcpy(databuf, srcbuf, sectorsize * spp);
+    memcpy(oobuf, srcbuf + sectorsize * spp, oobsize * spp);
+    break;
+
+  case w_linout:
+    // For this mode - the input file only contains data with a size of pagesize
+    memcpy(databuf, srcbuf, pagesize);
+    break;
+}
+
+// Set the flash address
+printf("\r Block: %04x   Page: %02x", block, page);
+fflush(stdout);
+setaddr(block, page);
+
+// Set the write command code
+switch (wmode) {
+  case w_standart:
+    mempoke(nand_cmd, 0x36); // Page program - write only the block body
+    break;
+
+  case w_linux:
+  case w_yaffs:
+  case w_linout:
+    mempoke(nand_cmd, 0x39); // Write data+spare, ECC is calculated by the controller
+    break;
+
+  case w_image:
+    mempoke(nand_cmd, 0x39); // Write data+spare+ecc, all data from the buffer goes directly to the flash
+    break;
+}
+
+// Sector loop
+for (sector = 0; sector < spp; sector++) {
+  memset(datacmd, 0xff, sectorsize + 64); // Fill the sector buffer with FF - default values
+
+  // Fill the sector buffer with data
+  switch (wmode) {
+    case w_linux:
+      // Linux (Chinese weird) data layout, writing without OOB
+      if (sector < (spp - 1))
+        // First n sectors
+        memcpy(datacmd, databuf + sector * (sectorsize + 4), sectorsize + 4);
+      else
+        // Last sector
+        memcpy(datacmd, databuf + (spp - 1) * (sectorsize + 4), sectorsize - 4 * (spp - 1)); // Shorten the last sector
       break;
 
-      case w_linout:
-      // для этого режима - во входном файле только данные с размером pagesize 
-		memcpy(databuf,srcbuf,pagesize);
-	break;
-    }
-    
-    // устанавливаем адрес флешки
-    printf("\r Блок: %04x   Страница: %02x",block,page); fflush(stdout);
-    setaddr(block,page);
+    case w_standart:
+      // Standard format - only 512-byte sectors, without OOB
+      memcpy(datacmd, databuf + sector * sectorsize, sectorsize);
+      break;
 
-    // устанавливаем код команды записи
-    switch (wmode) {
-	case w_standart:
-	mempoke(nand_cmd,0x36); // page program - пишем только тело блока
-    break;
+    case w_image:
+      // Raw image - data+oob, ECC is not calculated
+      memcpy(datacmd, databuf + sector * sectorsize, sectorsize); // Data
+      memcpy(datacmd + sectorsize, oobuf + sector * oobsize, oobsize); // OOB
+      break;
 
-	case w_linux:
-	case w_yaffs:
-	case w_linout:
-        mempoke(nand_cmd,0x39); // запись data+spare, ECC вычисляется контроллером
-    break;
-	 
-	case w_image:
-        mempoke(nand_cmd,0x39); // запись data+spare+ecc, все данные из буфера идут прямо на флешку
-    break;
-    }
-
-    // цикл по секторам
-    for(sector=0;sector<spp;sector++) {
-      memset(datacmd,0xff,sectorsize+64); // заполняем секторный буфер FF - значения по умолчанию
-      
-      // заполняем секторный буфер данными
-      switch (wmode) {
-        case w_linux:
-	// линуксовый (китайский извратный) вариант раскладки данных, запись без OOB
-          if (sector < (spp-1))  
-	 //первые n секторов
-             memcpy(datacmd,databuf+sector*(sectorsize+4),sectorsize+4); 
-          else 
-	 // последний сектор
-             memcpy(datacmd,databuf+(spp-1)*(sectorsize+4),sectorsize-4*(spp-1)); // данные последнего сектора - укорачиваем
-	  break;
-	  
-        case w_standart:
-	 // стандартный формат - только сектора по 512 байт, без ООВ
-          memcpy(datacmd,databuf+sector*sectorsize,sectorsize); 
-	  break;
-	  
-	case w_image:
-	 // сырой образ - data+oob, ECC не вычисляется
-          memcpy(datacmd,databuf+sector*sectorsize,sectorsize);       // data
-          memcpy(datacmd+sectorsize,oobuf+sector*oobsize,oobsize);    // oob
-	  break;
-
-	case w_yaffs:
-	 // образ yaffs - записываем только данные 516-байтными блоками 
-	 //  и yaffs-тег в конце последнего блока
-	 // входной файл имеет формат page+oob, но при этом тег лежит с позиции 0 OOB 
-          if (sector < (spp-1))  
-	 //первые n секторов
-             memcpy(datacmd,databuf+sector*(sectorsize+4),sectorsize+4); 
-          else  {
-	 // последний сектор
-             memcpy(datacmd,databuf+(spp-1)*(sectorsize+4),sectorsize-4*(spp-1)); // данные последнего сектора - укорачиваем
-             memcpy(datacmd+sectorsize-4*(spp-1),oobuf,16 );    // тег yaffs присоединяем к нему
-		  }
-	  break;
-
-	case w_linout:
-	 // записываем только данные 516-байтными блоками 
-          if (sector < (spp-1))  
-	 //первые n секторов
-             memcpy(datacmd,databuf+sector*(sectorsize+4),sectorsize+4); 
-          else  {
-	 // последний сектор
-             memcpy(datacmd,databuf+(spp-1)*(sectorsize+4),sectorsize-4*(spp-1)); // данные последнего сектора - укорачиваем
-		  }
-	  break;
-
+    case w_yaffs:
+      // YAFFS Image - Write only data in 516-byte blocks and a YAFFS tag at the end of the last block
+      // The input file is in the format of page+oob, but the tag is located at position 0 in the OOB area.
+      if (sector < (spp - 1))
+        // First n sectors
+        memcpy(datacmd, databuf + sector * (sectorsize + 4), sectorsize + 4);
+      else {
+        // Last sector
+        memcpy(datacmd, databuf + (spp - 1) * (sectorsize + 4), sectorsize - 4 * (spp - 1)); // Shorten the last sector
+        memcpy(datacmd + sectorsize - 4 * (spp - 1), oobuf, 16); // Append the yaffs tag to it
       }
-      // пересылаем сектор в секторный буфер
-	  if (!memwrite(sector_buf,datacmd,sectorsize+oobsize)) {
-		printf("\n Ошибка передачи секторного буфера\n");
-		return;
-      }	
-      // если надо, отключаем контроль бедблоков
-      if (uxflag) hardware_bad_off();
-      // выполняем команду записи и ждем ее завершения
-      mempoke(nand_exec,0x1);
-      nandwait(); 
-      // включаем обратно контроль бедблоков
-      if (uxflag) hardware_bad_on();
-     }  // конец цикла записи по секторам
-     if (!vflag) continue;   // верификация не требуется
-    // верификация данных
-     printf("\r");
-     setaddr(block,page);
-     mempoke(nand_cmd,0x34); // чтение data+ecc+spare
-     
-     // цикл верификации по секторам
-     for(sector=0;sector<spp;sector++) {
-      // читаем очередной сектор 
-      mempoke(nand_exec,0x1);
-      nandwait();
-      
-      // читаем секторный буфер
-      memread(membuf,sector_buf,sectorsize+oobsize);
-      switch (wmode) {
-        case w_linux:
- 	// верификация в линуксовом формате
-	  if (sector != (spp-1)) {
-	    // все сектора кроме последнего
-	    for (i=0;i<sectorsize+4;i++) 
-	      if (membuf[i] != databuf[sector*(sectorsize+4)+i])
-                 printf("! block: %04x  page:%02x  sector:%u  byte: %03x  %02x != %02x\n",
-			block,page,sector,i,membuf[i],databuf[sector*(sectorsize+4)+i]); 
-	  }  
-	  else {
-	      // последний сектор
-	    for (i=0;i<sectorsize-4*(spp-1);i++) 
-	      if (membuf[i] != databuf[(spp-1)*(sectorsize+4)+i])
-                 printf("! block: %04x  page:%02x  sector:%u  byte: %03x  %02x != %02x\n",
-			block,page,sector,i,membuf[i],databuf[(spp-1)*(sectorsize+4)+i]); 
-	  }    
-	  break; 
-	  
-		 case w_standart:
-	     case w_image:  
-         case w_yaffs:  
-	     case w_linout: // пока не работает! 
-          // верификация в стандартном формате
-	  for (i=0;i<sectorsize;i++) 
-	      if (membuf[i] != databuf[sector*sectorsize+i])
-                 printf("! block: %04x  page:%02x  sector:%u  byte: %03x  %02x != %02x\n",
-			block,page,sector,i,membuf[i],databuf[sector*sectorsize+i]); 
-	  break;   
-      }  // switch(wmode)
-    }  // конец секторного цикла верификации
-  }  // конец цикла по страницам 
-} // конец цикла по блокам  
-endpage:  
-mempoke(nand_cfg0,cfg0bak);
-mempoke(nand_cfg1,cfg1bak);
-mempoke(nand_ecc_cfg,cfgeccbak);
+      break;
+
+    case w_linout:
+      // Write only data with 516-byte blocks
+      if (sector < (spp - 1))
+        // First n sectors
+        memcpy(datacmd, databuf + sector * (sectorsize + 4), sectorsize + 4);
+      else {
+        // Last sector
+        memcpy(datacmd, databuf + (spp - 1) * (sectorsize + 4), sectorsize - 4 * (spp - 1)); // Shorten the last sector
+      }
+      break;
+  }
+  // Transfer the sector to the sector buffer
+  if (!memwrite(sector_buf, datacmd, sectorsize + oobsize)) {
+    printf("\n Error transferring the sector buffer\n");
+    return;
+  }
+  // If necessary, disable bad block checking
+  if (uxflag) hardware_bad_off();
+  // Execute the write command and wait for it to finish
+  mempoke(nand_exec, 0x1);
+  nandwait();
+  // Enable bad block checking again
+  if (uxflag) hardware_bad_on();
+}  // End of the sector loop
+
+if (!vflag) continue; // Verification is not required
+
+// Data verification
+printf("\r");
+setaddr(block, page);
+mempoke(nand_cmd, 0x34); // Read data+ecc+spare
+
+// Sector verification loop
+for (sector = 0; sector < spp; sector++) {
+  // Read the next sector
+  mempoke(nand_exec, 0x1);
+  nandwait();
+
+  // Read the sector buffer
+  memread(membuf, sector_buf, sectorsize + oobsize);
+  switch (wmode) {
+    case w_linux:
+      // Verification in Linux format
+      if (sector != (spp - 1)) {
+        // All sectors except the last one
+        for (i = 0; i < sectorsize + 4; i++)
+          if (membuf[i] != databuf[sector * (sectorsize + 4) + i])
+            printf("! block: %04x  page:%02x  sector:%u  byte: %03x  %02x != %02x\n",
+              block, page, sector, i, membuf[i], databuf[sector * (sectorsize + 4) + i]);
+      } else {
+        // Last sector
+        for (i = 0; i < sectorsize - 4 * (spp - 1); i++)
+          if (membuf[i] != databuf[(spp - 1) * (sectorsize + 4) + i])
+            printf("! block: %04x  page:%02x  sector:%u  byte: %03x  %02x != %02x\n",
+              block, page, sector, i, membuf[i], databuf[(spp - 1) * (sectorsize + 4) + i]);
+      }
+      break;
+
+    case w_standart:
+    case w_image:
+    case w_yaffs:
+    case w_linout: // Currently not working!
+      // Verification in standard format
+      for (i = 0; i < sectorsize; i++)
+        if (membuf[i] != databuf[sector * sectorsize + i])
+          printf("! block: %04x  page:%02x  sector:%u  byte: %03x  %02x != %02x\n",
+            block, page, sector, i, membuf[i], databuf[sector * sectorsize + i]);
+      break;
+  }  // switch(wmode)
+}  // End of the sector verification loop
+}  // End of the page loop
+}  // End of the block loop
+
+endpage:
+mempoke(nand_cfg0, cfg0bak);
+mempoke(nand_cfg1, cfg1bak);
+mempoke(nand_ecc_cfg, cfgeccbak);
 printf("\n");
 }
