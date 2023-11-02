@@ -1,17 +1,16 @@
-extern unsigned int nand_cmd;    // 0x1b400000
+extern unsigned int nand_cmd;     // 0x1b400000
 extern unsigned int spp;
 extern unsigned int pagesize;
 extern unsigned int sectorsize;
-extern unsigned int maxblock;    // Общее число блоков флешки
+extern unsigned int maxblock;     // Total number of flash blocks
 extern unsigned int oobsize;
 extern unsigned int bad_loader;
-extern unsigned int flash16bit; // 0 - 8-битная флешка, 1 - 16-битная
+extern unsigned int flash16bit;   // 0 - 8-bit flash, 1 - 16-bit flash
 extern unsigned int badposition;
-extern unsigned int badplace;     // местоположение маркера: 0-user, 1-spare
+extern unsigned int badplace;     // Marker location: 0-user, 1-spare
 
-// индекс в таблице чипcетов
-extern int chip_type; 
-
+// Index in the chipset table
+extern int chip_type;
 
 // #define nand_addr0 nand_cmd+4
 // #define nand_addr1 nand_cmd+8
@@ -24,27 +23,26 @@ extern int chip_type;
 // #define NAND_FLASH_READ_ID nand_cmd+0x40
 // #define sector_buf nand_cmd+0x100
 
+// Definitions for NAND command registers
 extern unsigned int nand_addr0;
 extern unsigned int nand_addr1;
-extern unsigned int nand_cs;   
-extern unsigned int nand_exec; 
+extern unsigned int nand_cs;
+extern unsigned int nand_exec;
 extern unsigned int nand_status;
 extern unsigned int nand_buffer_status;
-extern unsigned int nand_cfg0;  
-extern unsigned int nand_cfg1;  
+extern unsigned int nand_cfg0;
+extern unsigned int nand_cfg1;
 extern unsigned int nand_ecc_cfg;
-extern unsigned int NAND_FLASH_READ_ID; 
+extern unsigned int NAND_FLASH_READ_ID;
 extern unsigned int sector_buf;
 
-extern int bch_mode;        // режим ЕСС: 0=R-S  1=BCH
-extern int ecc_size;              // размер ЕСС
-extern int ecc_bit;               // число бит, корректируемых ECC
+extern int bch_mode;      // ECC mode: 0=R-S, 1=BCH
+extern int ecc_size;      // ECC size
+extern int ecc_bit;       // Number of bits corrected by ECC
 
+extern unsigned int nc_stop, nc_read, nc_readall, nc_program, nc_programall, nc_erase, nc_identify;
 
-extern unsigned int nc_stop,nc_read,nc_readall,nc_program,nc_programall,nc_erase,nc_identify;
-
-
-#define ppb 64             // число страниц в 1 блоке
+#define ppb 64  // Number of pages per block
 
 #ifdef WIN32
 int qread(int siofd, unsigned char* buf, int len);
