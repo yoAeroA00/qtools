@@ -1,4 +1,4 @@
-# qtools
+# qtools mod@yoAeroA00
 
 A Set of Tools for working with flash on devices with Qualcomm Chipsets. The toolkit consists of a package of utilities and a set of patched loaders.
 
