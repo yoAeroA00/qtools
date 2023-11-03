@@ -196,7 +196,6 @@ The following options are available:\n\n\
     printf("\nChipset type is not specified - full initialization is not possible.\n");
     helloflag = 2;
   }
-}
 
 if ((helloflag == 0)&& (chip_type >= 0))  printf("\n Чипсет: %s",get_chipname());
 
