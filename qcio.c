@@ -425,6 +425,7 @@ if (oobsize == 0) {
   if ((nandid == 0x2690ac2c) || (nandid == 0x2690ac98)) oobsize = 256; 
   else oobsize = (8 << ((devcfg >> 2) & 0x1)) * (pagesize >> 9);
 }
+}
 
 //**********************************************
 //* Disable Hardware Bad Block Control
@@ -668,7 +669,7 @@ void set_udsize(unsigned int size) {
   mempoke(nand_cfg0, tmpreg);
   if (((mempeek(nand_cfg1) >> 27) & 1) != 0) { // BCH ECC
     tmpreg = mempeek(nand_ecc_cfg);
-    tmpreg = (tmpreg & (~(0x3ff << 16)) | (size << 16); // ECC_CFG.ECC_NUM_DATA_BYTES
+    tmpreg = (tmpreg & (~(0x3ff << 16)) | (size << 16)); // ECC_CFG.ECC_NUM_DATA_BYTES
     mempoke(nand_ecc_cfg, tmpreg);
   }
 }
