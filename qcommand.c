@@ -19,14 +19,14 @@ void iocmd(char* cmdBuffer, int cmdLength) {
 
     if (hdlcFlag) {
         // HDLC mode command
-        ioLength = sendCmdBase(cmdBuffer, cmdLength, ioBuffer, prefixFlag);
+        ioLength = send_cmd_base(cmdBuffer, cmdLength, ioBuffer, prefixFlag);
         if (ioBuffer[1] == 0x0E) {
-            showErrPacket("[ERR] ", ioBuffer, ioLength);
+            show_errpacket("[ERR] ", ioBuffer, ioLength);
             return;
         }
     } else {
-        qWrite(sioFd, cmdBuffer, cmdLength);
-        ioLength = qRead(sioFd, ioBuffer, 1024);
+        qwrite(siofd, cmdBuffer, cmdLength);
+        ioLength = qread(siofd, ioBuffer, 1024);
     }
 
     if (ioLength != 0) {
@@ -155,7 +155,7 @@ void hdlcSwitch(char* line) {
 // Decode the contents of CFG0 register
 //**********************************************
 void decodeCfg0() {
-    unsigned int cfg0 = memPeek(nandCfg0);
+    unsigned int cfg0 = mempeek(nand_cfg0);
     printf("\n **** Configuration Register 0 *****");
     printf("\n * NUM_ADDR_CYCLES              = %x", (cfg0 >> 27) & 7);
     printf("\n * SPARE_SIZE_BYTES             = %x", (cfg0 >> 23) & 0xf);
@@ -170,7 +170,7 @@ void decodeCfg0() {
 // Decode the contents of CFG1 register
 //**********************************************
 void decodeCfg1() {
-    unsigned int cfg1 = memPeek(nandCfg1);
+    unsigned int cfg1 = mempeek(nand_cfg1);
     printf("\n **** Configuration Register 1 *****");
     printf("\n * ECC_MODE                      = %x", (cfg1 >> 28) & 3);
     printf("\n * ENABLE_BCH_ECC                = %x", (cfg1 >> 27) & 1);
@@ -190,11 +190,10 @@ void decodeCfg1() {
 // Command processing
 //**********************************************8
 void processCommand(char* cmdLine) {
-    int address, length = 128, data;
+    int adr, len = 128, data;
     char* sptr;
-    char memBuffer[4096];
-    int block, page, sector;
-}
+    char membuf[4096];
+    int block, page, sect;
 
 switch (cmdLine[0]) {
 
@@ -254,8 +253,8 @@ x                 - exit the program\n\
     if (sptr != 0) {
       sscanf(sptr, "%x", &len);
     }
-    if (memRead(memBuf, adr, len)) {
-      dump(memBuf, len, adr); 
+    if (memread(membuf, adr, len)) {
+      dump(membuf, len, adr); 
     }
     break;
 
@@ -268,7 +267,7 @@ x                 - exit the program\n\
     sscanf(sptr, "%x", &adr);
     while ((sptr = strtok(0, " ")) != 0) { // data
       sscanf(sptr, "%x", &data);
-      if (!memPoke(adr, data)) {
+      if (!mempoke(adr, data)) {
         printf("\n Command returned an error, adr=%08x  data=%08x\n", adr, data);
       }
       adr += 4;
@@ -306,68 +305,68 @@ x                 - exit the program\n\
       return;
     }
    
-    if (!flashRead(block, page, sect)) {
+    if (!flash_read(block, page, sect)) {
       printf("\n    *** bad block ***\n");
     }
-    memRead(memBuf, sectorBuf, 0x23c);
-    dump(memBuf, 0x23c, 0); 
+    memread(membuf, sector_buf, 0x23c);
+    dump(membuf, 0x23c, 0); 
     break;
    
   case 's': 
     hello(0);
-    memRead(memBuf, sectorBuf, 0x23c);
-    dump(memBuf, 0x23c, 0); 
+    memread(membuf, sector_buf, 0x23c);
+    dump(membuf, 0x23c, 0); 
     break;
 
   case 'n':
     hello(0);
-    if (isChipset("MDM9x4x")) {
-      memRead(memBuf, nandCmd, 0x1c);
-      memRead(memBuf + 0x20, nandCmd + 0x20, 0x0c);
-      memRead(memBuf + 0x40, nandCmd + 0x40, 0x0c);
+    if (is_chipset("MDM9x4x")) {
+      memread(membuf, nand_cmd, 0x1c);
+      memread(membuf + 0x20, nand_cmd + 0x20, 0x0c);
+      memread(membuf + 0x40, nand_cmd + 0x40, 0x0c);
       //   memread(membuf+0x64,nand_cmd+0x64,4);
       //   memread(membuf+0x70,nand_cmd+0x70,0x1c);
       //   memread(membuf+0xa0,nand_cmd+0xa0,0x10);
       //   memread(membuf+0xd0,nand_cmd+0xd0,0x10);
       memread(membuf+0xe8,nand_cmd+0xe8,0x0c);
     } else {
-      memRead(memBuf, nandCmd, 0x100);
+      memread(membuf, nand_cmd, 0x100);
     }
 
-    printf("\n* 000 NAND_FLASH_CMD         = %08x", *((unsigned int*)&memBuf[0]));
-    printf("\n* 004 NAND_ADDR0             = %08x", *((unsigned int*)&memBuf[4]));
-    printf("\n* 008 NAND_ADDR1             = %08x", *((unsigned int*)&memBuf[8]));
-    printf("\n* 00c NAND_CHIP_SELECT       = %08x", *((unsigned int*)&memBuf[0xc]));
-    printf("\n* 010 NANDC_EXEC_CMD         = %08x", *((unsigned int*)&memBuf[0x10]));
-    printf("\n* 014 NAND_FLASH_STATUS      = %08x", *((unsigned int*)&memBuf[0x14]));
-    printf("\n* 018 NANDC_BUFFER_STATUS    = %08x", *((unsigned int*)&memBuf[0x18]));
-    printf("\n* 020 NAND_DEV0_CFG0         = %08x", *((unsigned int*)&memBuf[0x20]));
-    printf("\n* 024 NAND_DEV0_CFG1         = %08x", *((unsigned int*)&memBuf[0x24]));
-    printf("\n* 028 NAND_DEV0_ECC_CFG      = %08x", *((unsigned int*)&memBuf[0x28]));
-    printf("\n* 040 NAND_FLASH_READ_ID     = %08x", *((unsigned int*)&memBuf[0x40]));
-    printf("\n* 044 NAND_FLASH_READ_STATUS = %08x", *((unsigned int*)&memBuf[0x44]));
-    printf("\n* 048 NAND_FLASH_READ_ID2    = %08x", *((unsigned int*)&memBuf[0x48]));
-    if (!(isChipset("MDM9x4x"))) {
-      printf("\n* 064 FLASH_MACRO1_REG       = %08x", *((unsigned int*)&memBuf[0x64]));
-      printf("\n* 070 FLASH_XFR_STEP1        = %08x", *((unsigned int*)&memBuf[0x70]));
-      printf("\n* 074 FLASH_XFR_STEP2        = %08x", *((unsigned int*)&memBuf[0x74]));
-      printf("\n* 078 FLASH_XFR_STEP3        = %08x", *((unsigned int*)&memBuf[0x78]));
-      printf("\n* 07c FLASH_XFR_STEP4        = %08x", *((unsigned int*)&memBuf[0x7c]));
-      printf("\n* 080 FLASH_XFR_STEP5        = %08x", *((unsigned int*)&memBuf[0x80]));
-      printf("\n* 084 FLASH_XFR_STEP6        = %08x", *((unsigned int*)&memBuf[0x84]));
-      printf("\n* 088 FLASH_XFR_STEP7        = %08x", *((unsigned int*)&memBuf[0x88]));
-      printf("\n* 0a0 FLASH_DEV_CMD0         = %08x", *((unsigned int*)&memBuf[0xa0]));
-      printf("\n* 0a4 FLASH_DEV_CMD1         = %08x", *((unsigned int*)&memBuf[0xa4]));
-      printf("\n* 0a8 FLASH_DEV_CMD2         = %08x", *((unsigned int*)&memBuf[0xa8]));
-      printf("\n* 0ac FLASH_DEV_CMD_VLD      = %08x", *((unsigned int*)&memBuf[0xac]));
-      printf("\n* 0d0 FLASH_DEV_CMD3         = %08x", *((unsigned int*)&memBuf[0xd0]));
-      printf("\n* 0d4 FLASH_DEV_CMD4         = %08x", *((unsigned int*)&memBuf[0xd4]));
-      printf("\n* 0d8 FLASH_DEV_CMD5         = %08x", *((unsigned int*)&memBuf[0xd8]));
-      printf("\n* 0dc FLASH_DEV_CMD6         = %08x", *((unsigned int*)&memBuf[0xdc]));
+    printf("\n* 000 NAND_FLASH_CMD         = %08x", *((unsigned int*)&membuf[0]));
+    printf("\n* 004 NAND_ADDR0             = %08x", *((unsigned int*)&membuf[4]));
+    printf("\n* 008 NAND_ADDR1             = %08x", *((unsigned int*)&membuf[8]));
+    printf("\n* 00c NAND_CHIP_SELECT       = %08x", *((unsigned int*)&membuf[0xc]));
+    printf("\n* 010 NANDC_EXEC_CMD         = %08x", *((unsigned int*)&membuf[0x10]));
+    printf("\n* 014 NAND_FLASH_STATUS      = %08x", *((unsigned int*)&membuf[0x14]));
+    printf("\n* 018 NANDC_BUFFER_STATUS    = %08x", *((unsigned int*)&membuf[0x18]));
+    printf("\n* 020 NAND_DEV0_CFG0         = %08x", *((unsigned int*)&membuf[0x20]));
+    printf("\n* 024 NAND_DEV0_CFG1         = %08x", *((unsigned int*)&membuf[0x24]));
+    printf("\n* 028 NAND_DEV0_ECC_CFG      = %08x", *((unsigned int*)&membuf[0x28]));
+    printf("\n* 040 NAND_FLASH_READ_ID     = %08x", *((unsigned int*)&membuf[0x40]));
+    printf("\n* 044 NAND_FLASH_READ_STATUS = %08x", *((unsigned int*)&membuf[0x44]));
+    printf("\n* 048 NAND_FLASH_READ_ID2    = %08x", *((unsigned int*)&membuf[0x48]));
+    if (!(is_chipset("MDM9x4x"))) {
+      printf("\n* 064 FLASH_MACRO1_REG       = %08x", *((unsigned int*)&membuf[0x64]));
+      printf("\n* 070 FLASH_XFR_STEP1        = %08x", *((unsigned int*)&membuf[0x70]));
+      printf("\n* 074 FLASH_XFR_STEP2        = %08x", *((unsigned int*)&membuf[0x74]));
+      printf("\n* 078 FLASH_XFR_STEP3        = %08x", *((unsigned int*)&membuf[0x78]));
+      printf("\n* 07c FLASH_XFR_STEP4        = %08x", *((unsigned int*)&membuf[0x7c]));
+      printf("\n* 080 FLASH_XFR_STEP5        = %08x", *((unsigned int*)&membuf[0x80]));
+      printf("\n* 084 FLASH_XFR_STEP6        = %08x", *((unsigned int*)&membuf[0x84]));
+      printf("\n* 088 FLASH_XFR_STEP7        = %08x", *((unsigned int*)&membuf[0x88]));
+      printf("\n* 0a0 FLASH_DEV_CMD0         = %08x", *((unsigned int*)&membuf[0xa0]));
+      printf("\n* 0a4 FLASH_DEV_CMD1         = %08x", *((unsigned int*)&membuf[0xa4]));
+      printf("\n* 0a8 FLASH_DEV_CMD2         = %08x", *((unsigned int*)&membuf[0xa8]));
+      printf("\n* 0ac FLASH_DEV_CMD_VLD      = %08x", *((unsigned int*)&membuf[0xac]));
+      printf("\n* 0d0 FLASH_DEV_CMD3         = %08x", *((unsigned int*)&membuf[0xd0]));
+      printf("\n* 0d4 FLASH_DEV_CMD4         = %08x", *((unsigned int*)&membuf[0xd4]));
+      printf("\n* 0d8 FLASH_DEV_CMD5         = %08x", *((unsigned int*)&membuf[0xd8]));
+      printf("\n* 0dc FLASH_DEV_CMD6         = %08x", *((unsigned int*)&membuf[0xdc]));
     }
-    printf("\n* 0e8 NAND_ERASED_CW_DET_CFG = %08x", *((unsigned int*)&memBuf[0xe8]));
-    printf("\n* 0ec NAND_ERASED_CW_DET_ST  = %08x", *((unsigned int*)&memBuf[0xec]));
-    printf("\n* 0f0 EBI2_ECC_BUF_CFG       = %08x\n", *((unsigned int*)&memBuf[0xf0]));
+    printf("\n* 0e8 NAND_ERASED_CW_DET_CFG = %08x", *((unsigned int*)&membuf[0xe8]));
+    printf("\n* 0ec NAND_ERASED_CW_DET_ST  = %08x", *((unsigned int*)&membuf[0xec]));
+    printf("\n* 0f0 EBI2_ECC_BUF_CFG       = %08x\n", *((unsigned int*)&membuf[0xf0]));
     break;
   case 'x': 
     exit(0);
@@ -428,7 +427,7 @@ Available options:\n\n\
         break;
       
       case 'k':
-        defineChipset(optarg);
+        define_chipset(optarg);
         break;
       
       case 'i':
@@ -456,7 +455,7 @@ Available options:\n\n\
   }
 #endif
 
-  if (!openPort(devName))  {
+  if (!open_port(devName))  {
 #ifndef WIN32
     printf("\n - Serial port %s does not open\n", devName); 
 #else
