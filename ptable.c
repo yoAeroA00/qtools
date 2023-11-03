@@ -45,8 +45,9 @@ int load_ptable_flash() {
         // Adjust the length of the last partition if maxblock is not zero
         if ((maxblock != 0) && (fptable.part[fptable.numparts - 1].len == 0xffffffff)) {
             fptable.part[fptable.numparts - 1].len = maxblock - fptable.part[fptable.numparts - 1].offset; // If the length is FFFF, it represents a growing partition.
-            return 1;  // The table is found; there's nothing more to do here
         }
+
+		return 1;  // The table is found; there's nothing more to do here
     }
 
     validpart = 0;
